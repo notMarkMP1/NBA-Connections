@@ -397,7 +397,7 @@ if __name__ == "__main__":
         print("Starting scrape")
         generate_all_player_stats()
     else:
-        generate_all_missing_player_stats()
+        # generate_all_missing_player_stats()
         # print(len(players_played_with("jamesle01", "t")))
         # print(len(players_played_with("jamesle01", "o")))
         # scrape_individual_player("abdelal01")
