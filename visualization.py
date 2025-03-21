@@ -8,7 +8,18 @@ class playerObject:
     player_data: PlayerData
     position: pygame.Vector2
     radius: float
+
+def build_sidebar(SCREEN_WIDTH: int, SCREEN_HEIGHT: int) -> None:
     
+    SIDEBAR_WIDTH = 100
+    SIDEBAR_HEIGHT = 100
+    
+    sidebar_rect = pygame.Rect(0, 0, SIDEBAR_WIDTH, SCREEN_HEIGHT)
+
+    # Search bar setup
+    search_rect = pygame.Rect(SIDEBAR_WIDTH + 20, 20, SCREEN_WIDTH - SIDEBAR_WIDTH - 40, 40)
+    search_text = ''
+    search_active = False
 
 # pygame setup
 def start_visualization() -> None:
@@ -20,6 +31,9 @@ def start_visualization() -> None:
     clock = pygame.time.Clock()
     running = True
     dt = 0
+    
+    SCREEN_WIDTH = screen.get_width()
+    SCREEN_HEIGHT = screen.get_height()
 
     player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
 
