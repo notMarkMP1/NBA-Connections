@@ -101,23 +101,30 @@ class PlayerObject:
     player_vertex: Vertex 
     player_data: PlayerData
     position: pygame.Vector2
-    size: float
+    node_size: float
+    font_size: int
     object: pygame.rect
     color: tuple[int, int, int]
+    font: pygame.font
 
-    def __init__(self, position: pygame.Vector2, size: int):
+
+    def __init__(self, position: pygame.Vector2, node_size: int):
         self.position = position
-        self.size = size
-        self.object = pygame.Rect(int(position.x), int(position.y), int(self.size), int(self.size))
+        self.node_size = node_size
+        self.font_size = 12
+        self.object = pygame.Rect(int(position.x), int(position.y), int(self.node_size), int(self.node_size))
         self.color = (255, 0, 0)
+        self.text = pygame.font.Font(None, size=12).render("LEBRON JAMES!", True, (0, 0, 0))
 
     def scale_and_transform(self, camera : Camera) -> None:
         """
         Scale and transform the object to place it where it should be according to the current camera position and zoom.
         """
-        self.object.width = self.size * camera.zoom
-        self.object.height = self.size * camera.zoom
-        self.object.move_ip(camera.camera.topleft)
+        self.object.width = self.node_size * camera.zoom
+        self.object.height = self.node_size * camera.zoom
+        self.text = pygame.font.Font(None, size=int(self.font_size*camera.zoom)).render("LEBRON JAMES!", True, (0, 0, 0))
+        self.object.x = self.position.x + camera.camera.left
+        self.object.y = self.position.y + camera.camera.top
         #print(self.object.center)
 
     def render(self, screen: pygame.display, camera: Camera) -> None:
@@ -126,13 +133,19 @@ class PlayerObject:
         """
         
         pygame.draw.rect(screen, self.color, self.object)
+        screen.blit(self.text, (self.object.center))
     
-    def check_collision(self) -> None:
+    def check_collision(self, events: list[pygame.event.Event]) -> None:
         """
-        Evaluate if the mouse is currently on the object. 
+        Handle when the mouse collides with the current object.
         """
-
-    def check_boolean(self) -> bool:
-        """
-        Evaluate if the object has been clicked by the mouse.
-        """
+        point = pygame.mouse.get_pos()
+        collide = self.object.collidepoint(point)
+        if collide:
+            self.color = (255, 255, 255)
+            for event in events:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # Left click
+                        print(f"Left mouse button clicked at {event.pos}")
+        else:
+            self.color = (255, 0, 0)

@@ -3,15 +3,6 @@ import pygame
 from classes import Vertex, PlayerData
 from display_classes import PlayerObject, Camera
 
-
-
-
-        
-
-
-
-
-
 def build_sidebar(SCREEN_WIDTH: int, SCREEN_HEIGHT: int) -> None:
     
     SIDEBAR_WIDTH = 100
@@ -32,6 +23,7 @@ def start_visualization() -> None:
     pygame.init()
     screen = pygame.display.set_mode((1280, 720))
     camera = Camera(1280, 720)
+    clock = pygame.time.Clock()
     test_node = PlayerObject(pygame.Vector2(640, 360), 50)
     test_node_2 = PlayerObject(pygame.Vector2(300, 200), 50)
     running = True
@@ -45,7 +37,12 @@ def start_visualization() -> None:
     while running:
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
-        for event in pygame.event.get():
+
+        events = pygame.event.get()
+
+
+
+        for event in events:
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEWHEEL:
@@ -56,26 +53,34 @@ def start_visualization() -> None:
                 test_node.scale_and_transform(camera)
                 test_node_2.scale_and_transform(camera)
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Left mouse button
+                if event.button == 3:  # Right mouse button
                     is_dragging = True
                     last_mouse_pos = pygame.mouse.get_pos()
             elif event.type == pygame.MOUSEBUTTONUP:
-                if event.button == 1:  # Left mouse button
+                if event.button == 3:  # Right mouse button
                     is_dragging = False
             elif event.type == pygame.MOUSEMOTION and is_dragging:
                 mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
                 # Calculate the difference in mouse position to move the camera
                 mouse_delta = mouse_pos - last_mouse_pos
-                camera.camera.topleft += (mouse_delta *0.01)
+                camera.camera.topleft += (mouse_delta *0.1)
+                #print(camera.camera.topleft)
                 test_node.scale_and_transform(camera)
                 test_node_2.scale_and_transform(camera)
-    # Example drawing
+
         screen.fill("purple")
+
+
+        test_node.check_collision(events)
+        test_node_2.check_collision(events)
+
         test_node.render(screen=screen, camera=camera)
         test_node_2.render(screen=screen, camera=camera)
-        pygame.display.flip()
-        camera.update(player_pos)
 
+        pygame.display.flip()
+        #camera.update(player_pos)
+
+        clock.tick(60)
 
     pygame.quit()
 
