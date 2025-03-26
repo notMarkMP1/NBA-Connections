@@ -21,8 +21,8 @@ def start_visualization() -> None:
     Run the main python visualization tool.
     """
     pygame.init()
-    screen = pygame.display.set_mode((1280, 720))
-    camera = Camera(1280, 720)
+    screen = pygame.display.set_mode((1600, 900))
+    camera = Camera(1600, 900)
     clock = pygame.time.Clock()
     test_node = PlayerObject(pygame.Vector2(640, 360), 50)
     test_node_2 = PlayerObject(pygame.Vector2(300, 200), 50)

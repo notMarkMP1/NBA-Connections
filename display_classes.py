@@ -100,6 +100,10 @@ class PlayerObject:
     """
     player_vertex: Vertex 
     player_data: PlayerData
+
+    is_highlighted: bool
+
+
     position: pygame.Vector2
     node_size: float
     font_size: int
@@ -112,6 +116,7 @@ class PlayerObject:
         self.position = position
         self.node_size = node_size
         self.font_size = 12
+        self.is_highlighted = False
         self.object = pygame.Rect(int(position.x), int(position.y), int(self.node_size), int(self.node_size))
         self.color = (255, 0, 0)
         self.text = pygame.font.Font(None, size=12).render("LEBRON JAMES!", True, (0, 0, 0))
@@ -131,9 +136,16 @@ class PlayerObject:
         """
         Render the node in pygame according to the camera zoom and position.
         """
-        
-        pygame.draw.rect(screen, self.color, self.object)
+        if self.is_highlighted:
+            pygame.draw.rect(screen, (0, 0, 0), self.object)
+        else:
+            pygame.draw.rect(screen, self.color, self.object)
         screen.blit(self.text, (self.object.center))
+
+    def render_connections(self) -> None:
+        """
+        
+        """
     
     def check_collision(self, events: list[pygame.event.Event]) -> None:
         """
@@ -143,9 +155,12 @@ class PlayerObject:
         collide = self.object.collidepoint(point)
         if collide:
             self.color = (255, 255, 255)
-            for event in events:
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:  # Left click
-                        print(f"Left mouse button clicked at {event.pos}")
         else:
             self.color = (255, 0, 0)
+        for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
+                if collide:
+                    print(f"Left mouse button clicked at {event.pos}")
+                    self.is_highlighted = True
+                else:
+                    self.is_highlighted = False
