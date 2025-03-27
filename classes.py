@@ -37,7 +37,7 @@ class Vertex:
         Return the "teammate score" held between the current player and another player.
         """""
 
-
+      
 class Graph:
     """Fill out this docstring"""
     vertices: dict[str, Vertex]
@@ -59,7 +59,7 @@ class Graph:
         Iterate through all of the vertexs and average their winrate_correlation() to get a stat.
         """
 
-
+      
 class Edge:
     """Fill out this docstring"""
     points_towards: Vertex
@@ -71,7 +71,6 @@ class Edge:
         self.points_towards = points_towards
         self.teammate_stats = teammate_stats
         self.opponent_stats = opponent_stats
-
 
 class PlayerData:
     """Fill out this docstring"""
