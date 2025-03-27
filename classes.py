@@ -45,6 +45,7 @@ class Graph:
     def __init__(self) -> None:
         """Initialize an empty graph"""
         self.vertices = {}
+        self.initialize_graph()
 
     def add_vertex(self, player_name: str) -> None:
         """Add a vertex representing a player with the given name to this graph
@@ -58,6 +59,51 @@ class Graph:
         """
         Iterate through all of the vertexs and average their winrate_correlation() to get a stat.
         """
+    def initialize_graph(self) -> None:
+        with open('players_stats.json', 'r') as openfile:
+            stats_data = json.load(openfile)
+
+        for name, info in stats_data.items():
+            # Add only the active players
+            if info.get('active', False):
+                self.add_vertex(name)
+
+                player_stats = PlayerData(seasons=info.get('seasons', []),
+                                        first_team=info.get('first_team', ''),
+                                        last_team=info.get('last_team', ''),
+                                        stats=info.get('stats', {}),
+                                        image_link=info.get('image', ''))
+
+                self.vertices[name].expanded_data = player_stats
+
+        # print(self.vertices["Stephen Curry"].expanded_data.stats)
+
+        with open('active_players.json', 'r') as openfile:
+            player_connections = json.load(openfile)
+
+        for name, connections in player_connections.items():
+            # Access the vertex of the player so we can add its edges
+            player_vertex = self.vertices.get(name)
+
+            # Shouldn't happen but be safe
+            if not player_vertex:
+                continue
+
+            for connection in connections:
+                other_name = connection['name']
+
+                # Apparently we need to skip players not in the graph
+                if other_name not in self.vertices:
+                    continue
+
+                tmt_stats = connection.get('teammate_stats', {})
+                opp_stats = connection.get('opponent_stats', {})
+
+                edge = Edge(points_towards=self.vertices[other_name],
+                            teammate_stats=tmt_stats,
+                            opponent_stats=opp_stats)
+
+                player_vertex.neighbours.add(edge)
 
       
 class Edge:
@@ -90,7 +136,7 @@ class PlayerData:
 
 # Actual graph generation
 # I don't know if we want to put all of this in a callable function later, but we can
-player_graph = Graph()
+"""player_graph = Graph()
 with open('players_stats.json', 'r') as openfile:
     stats_data = json.load(openfile)
 
@@ -135,7 +181,7 @@ for name, connections in player_connections.items():
                     opponent_stats=opp_stats)
 
         player_vertex.neighbours.add(edge)
-
+"""
 '''
 Testing
 vertex = player_graph.vertices.get("Immanuel Quickley")
