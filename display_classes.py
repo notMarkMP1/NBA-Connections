@@ -1,7 +1,15 @@
 import pygame
 from classes import Vertex, PlayerData
 
-class displayData:
+class DisplayData:
+    """
+    A data class containing ancillary information for the application.
+    """
+    teams: list[str] = [
+        "ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW",
+        "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NOP", "NYK",
+        "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"
+    ]
 
     team_colours: dict[str, tuple[int, int, int]] = {
         "ATL": (225, 68, 52),   # Atlanta Hawks - Red
