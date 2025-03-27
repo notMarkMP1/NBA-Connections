@@ -129,9 +129,11 @@ class PlayerNode:
         Render the node in pygame according to the camera zoom and position.
         """
         if self.is_highlighted:
-            pygame.draw.rect(self.screen, (0, 0, 0), self.object)
+            pygame.draw.circle(self.screen, (0, 0, 0), self.object.center, self.object.width)
+            #pygame.draw.rect(self.screen, (0, 0, 0), self.object)
         else:
-            pygame.draw.rect(self.screen, self.color, self.object)
+            pygame.draw.circle(self.screen, self.color, self.object.center, self.object.width)
+            #pygame.draw.rect(self.screen, self.color, self.object)
         self.screen.blit(self.text, (self.object.center))
 
     def render_connections(self) -> None:

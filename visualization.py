@@ -1,6 +1,6 @@
 # Example file showing a basic pygame "game loop"
 import pygame
-from classes import Vertex, PlayerData
+from classes import Graph, Vertex, PlayerData
 from display_classes import PlayerNode, Camera, SearchBar, SideBar
 
 
@@ -11,6 +11,7 @@ class Visualization:
     """
 
     player_nodes: dict[str, PlayerNode]
+    graph: Graph
     sidebar: SideBar
     screen: pygame.display
     camera: Camera
@@ -23,12 +24,16 @@ class Visualization:
         self.sidebar = None
         self.screen = None
         self.camera = None
+        self.graph = Graph()
+        self.generate_data()
 
     def generate_data(self) -> None:
         """
         Iterate through the graph and create playernodes for each player data point. Store in the playernodes
         map that maps their id to their playernode object.
         """
+        for player_name in self.graph.vertices:
+            print(player_name)
     
     def initializeElements(self) -> None:
         """
