@@ -1,21 +1,25 @@
 import pygame
-from classes import Vertex, PlayerData
+import random
+import math
+
+import pygame.camera
+from classes import Vertex, PlayerData, Graph
 
 class DisplayData:
     """
     A data class containing ancillary information for the application.
     """
     teams: list[str] = [
-        "ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW",
+        "ATL", "BOS", "BRK", "CHO", "CHI", "CLE", "DAL", "DEN", "DET", "GSW",
         "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NOP", "NYK",
-        "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"
+        "OKC", "ORL", "PHI", "PHO", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"
     ]
 
     team_colours: dict[str, tuple[int, int, int]] = {
         "ATL": (225, 68, 52),   # Atlanta Hawks - Red
         "BOS": (0, 122, 51),    # Boston Celtics - Green
-        "BKN": (0, 0, 0),       # Brooklyn Nets - Black
-        "CHA": (29, 17, 96),    # Charlotte Hornets - Purple
+        "BRK": (0, 0, 0),       # Brooklyn Nets - Black
+        "CHO": (29, 17, 96),    # Charlotte Hornets - Purple
         "CHI": (206, 17, 65),   # Chicago Bulls - Red
         "CLE": (134, 0, 56),    # Cleveland Cavaliers - Wine
         "DAL": (0, 83, 188),    # Dallas Mavericks - Blue
@@ -35,7 +39,7 @@ class DisplayData:
         "OKC": (0, 125, 195),   # Oklahoma City Thunder - Blue
         "ORL": (0, 125, 197),   # Orlando Magic - Blue
         "PHI": (0, 107, 182),   # Philadelphia 76ers - Blue
-        "PHX": (229, 95, 32),   # Phoenix Suns - Orange
+        "PHO": (229, 95, 32),   # Phoenix Suns - Orange
         "POR": (224, 58, 62),   # Portland Trail Blazers - Red
         "SAC": (91, 43, 130),   # Sacramento Kings - Purple
         "SAS": (196, 206, 211), # San Antonio Spurs - Silver
@@ -44,7 +48,6 @@ class DisplayData:
         "WAS": (0, 43, 92)      # Washington Wizards - Navy Blue
     }
 
-    @staticmethod
     def get_team_colour(self, team_name: str) -> tuple[int, int, int]:
         if team_name in self.team_colours:
             return self.team_colours[team_name]
@@ -102,7 +105,7 @@ class PlayerNode:
 
     camera: Camera
     screen: pygame.display
-
+    #TODO ADD A DEFAULT COLOR FIELD
     position: pygame.Vector2
     node_size: float
     font_size: int
@@ -110,17 +113,26 @@ class PlayerNode:
     color: tuple[int, int, int]
     font: pygame.font
 
-
-    def __init__(self, position: pygame.Vector2, node_size: int, camera: Camera, screen: pygame.display):
+    def __init__(self,
+                 position: pygame.Vector2,
+                 node_size: int,
+                 camera: Camera,
+                 screen: pygame.display,
+                 player_vertex: Vertex,
+                 player_data: PlayerData):
+        
         self.position = position
         self.node_size = node_size
         self.font_size = 12
         self.is_highlighted = False
         self.object = pygame.Rect(int(position.x), int(position.y), int(self.node_size), int(self.node_size))
-        self.color = (255, 0, 0)
-        self.text = pygame.font.Font(None, size=self.font_size).render("LEBRON JAMES!", True, (0, 0, 0))
+        
+        self.text = pygame.font.Font(None, size=12).render("LEBRON JAMES!", True, (0, 0, 0))
         self.camera = camera
         self.screen = screen
+        self.player_vertex = player_vertex
+        self.player_data = player_data
+        self.color = DisplayData().team_colours[player_data.last_team]
 
     def scale_and_transform(self) -> None:
         """
@@ -128,7 +140,7 @@ class PlayerNode:
         """
         self.object.width = self.node_size * self.camera.zoom
         self.object.height = self.node_size * self.camera.zoom
-        self.text = pygame.font.Font(None, size=int(self.font_size*self.camera.zoom)).render("LEBRON JAMES!", True, (0, 0, 0))
+        self.text = pygame.font.Font(None, size=int(self.font_size*self.camera.zoom)).render(f"{self.player_vertex.name}", True, (0, 0, 0))
         self.object.x = self.position.x + self.camera.camera.left
         self.object.y = self.position.y + self.camera.camera.top
 
@@ -137,7 +149,7 @@ class PlayerNode:
         Render the node in pygame according to the camera zoom and position.
         """
         if self.is_highlighted:
-            pygame.draw.circle(self.screen, (0, 0, 0), self.object.center, self.object.width)
+            pygame.draw.circle(self.screen, self.color, self.object.center, self.object.width)
             #pygame.draw.rect(self.screen, (0, 0, 0), self.object)
         else:
             pygame.draw.circle(self.screen, self.color, self.object.center, self.object.width)
@@ -156,10 +168,12 @@ class PlayerNode:
         """
         point = pygame.mouse.get_pos()
         collide = self.object.collidepoint(point)
+        """
         if collide:
             self.color = (255, 255, 255)
         else:
             self.color = (255, 0, 0)
+        """
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
                 if collide:
@@ -234,14 +248,24 @@ class SideBar:
     search_bar: SearchBar
     screen: pygame.display
 
-    def __init__(self, SCREEN_WIDTH: int, SCREEN_HEIGHT: int, screen: pygame.display) -> None:
-        SIDEBAR_WIDTH = 500
-        SIDEBAR_HEIGHT = 900
-        SIDEBAR_LEFT = SCREEN_WIDTH - SIDEBAR_WIDTH
-        SIDEBAR_TOP = 0
+    SIDEBAR_WIDTH = 500
+    SIDEBAR_HEIGHT = 900
+    SIDEBAR_TOP = None
+    SIDEBAR_LEFT = None
 
-        self.sidebar = pygame.Rect(SCREEN_WIDTH - SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, SIDEBAR_HEIGHT)
-        self.search_bar = SearchBar(SIDEBAR_LEFT + 10, SIDEBAR_TOP + 10, SIDEBAR_WIDTH - 20, SIDEBAR_HEIGHT / 20, screen)
+    def __init__(self, SCREEN_WIDTH: int, SCREEN_HEIGHT: int, screen: pygame.display) -> None:
+
+        self.SIDEBAR_LEFT = SCREEN_WIDTH - self.SIDEBAR_WIDTH
+        self.SIDEBAR_TOP = 0
+
+        self.sidebar = pygame.Rect(self.SIDEBAR_LEFT, self.SIDEBAR_TOP, self.SIDEBAR_WIDTH, self.SIDEBAR_HEIGHT)
+        self.search_bar = SearchBar(
+            self.SIDEBAR_LEFT + 10,
+            self.SIDEBAR_TOP + 10,
+            self.SIDEBAR_WIDTH - 20,
+            self.SIDEBAR_HEIGHT / 20,
+            screen
+        )
         self.screen = screen
 
     def render(self) -> None:
@@ -257,3 +281,76 @@ class SideBar:
         """
         for event in events:
             self.search_bar.handle_event(event)
+
+
+class TeamBox:
+    """
+    An object that references the teambox object at the top left of the screen, where a teams current players are displayed.
+    """
+
+    teambox: pygame.rect
+    BOX_WIDTH = 1100
+    BOX_HEIGHT = 450
+    BOX_TOP = 0
+    BOX_LEFT = 0
+
+    screen: pygame.display
+    camera: Camera
+
+    def __init__(self, SCREEN_WIDTH: int, SCREEN_HEIGHT: int, screen: pygame.display, camera: Camera) -> None:
+        self.BOX_LEFT = 0
+        self.BOX_TOP = 0
+
+        self.sidebar = pygame.Rect(self.BOX_LEFT, self.BOX_TOP, self.BOX_WIDTH, self.BOX_HEIGHT)
+        self.screen = screen
+        self.camera = camera
+
+
+    def is_valid_point(self, new_point, existing_points, min_distance) -> bool:
+        for point in existing_points:
+            if math.dist(new_point, point) < min_distance:
+                return False
+        return True
+    
+    def get_points(self) -> list[tuple[int, int]]:
+
+        # Define bounds
+        x_min, y_min = 0, 0
+        x_max, y_max = 1110, 450
+        radius = 30
+        min_spacing = radius * 2  # Ensure circles don't overlap
+
+        points = []
+
+        while len(points) < 24:
+            new_point = (random.randint(x_min, x_max), random.randint(y_min, y_max))
+            if self.is_valid_point(new_point, points, min_spacing):
+                points.append(new_point)
+
+        print(points)
+        return points
+    
+    def generate_nodes(self,
+                       current_player_nodes: dict[str, PlayerNode],
+                       team: str,
+                       graph: Graph
+                       ) -> None:
+        current_player_nodes.clear()
+        circle_points = self.get_points()
+        index = 0
+        
+        for player_name in graph.vertices:
+            player_vertex = graph.vertices[player_name]
+            if team == player_vertex.expanded_data.last_team:
+                current_player_nodes[player_name] = PlayerNode(pygame.Vector2(circle_points[index][0], circle_points[index][1]),
+                                                               30,
+                                                               self.camera,
+                                                               self.screen,
+                                                               player_vertex,
+                                                               player_vertex.expanded_data)
+                index += 1
+
+class OpponentBox:
+    """
+    An object that references the opponent box object at the bottom left of the screen, where a teams current opponents are displayed.
+    """
