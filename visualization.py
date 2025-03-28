@@ -36,13 +36,17 @@ class Visualization:
 
         SCREEN_WIDTH = self.screen.get_width()
         SCREEN_HEIGHT = self.screen.get_height()
-
-        self.sidebar = SideBar(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen)
-        self.teambox = TeamBox(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen)
-
         self.current_player_nodes = {}
         self.graph = Graph()
-        self.teambox.generate_nodes(self.current_player_nodes, "TOR", self.graph)
+        
+        self.teambox = TeamBox(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen, self.current_player_nodes, self.graph)
+        self.sidebar = SideBar(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen)
+        self.teambox.add_references(self.sidebar)
+        self.sidebar.add_references(self.teambox)
+        self.sidebar.build_sidebar()
+
+
+        self.teambox.generate_nodes("TOR")
 
     def generate_data(self) -> None:
         """
@@ -90,22 +94,6 @@ class Visualization:
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
-                """elif event.type == pygame.MOUSEWHEEL:
-                    if event.y > 0:  # Scroll up (zoom in)
-                        self.camera.zoom_in()
-                    elif event.y < 0:  # Scroll down (zoom out)
-                        self.camera.zoom_out()
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 3:  # Right mouse button
-                        self.is_dragging = True
-                        self.last_mouse_pos = pygame.mouse.get_pos()
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 3:  # Right mouse button
-                        self.is_dragging = False
-                elif event.type == pygame.MOUSEMOTION and self.is_dragging:
-                    mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
-                    mouse_delta = mouse_pos - self.last_mouse_pos
-                    self.camera.update_position(mouse_delta)"""
 
 
             self.screen.fill("azure")
