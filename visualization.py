@@ -1,7 +1,7 @@
 # Example file showing a basic pygame "game loop"
 import pygame
 from classes import Graph, Vertex, PlayerData
-from display_classes import PlayerNode, Camera, SideBar, DisplayData, TeamBox
+from display_containers import PlayerNode, Camera, SideBar, DisplayData, TeamBox, OpponentBox
 
 
 class Visualization:
@@ -10,12 +10,10 @@ class Visualization:
     each of the indivdual player nodes, and the UI features.
     """
 
-    current_player_nodes: dict[str, PlayerNode]
     graph: Graph
     sidebar: SideBar
     teambox: TeamBox
     screen: pygame.display
-    camera: Camera
     clock: pygame.time.Clock
 
     running: bool
@@ -27,7 +25,6 @@ class Visualization:
 
         pygame.init()
         self.screen = pygame.display.set_mode((1600, 900))
-        #self.camera = Camera(1600, 900)
         self.clock = pygame.time.Clock()
 
         self.running = True
@@ -36,12 +33,12 @@ class Visualization:
 
         SCREEN_WIDTH = self.screen.get_width()
         SCREEN_HEIGHT = self.screen.get_height()
-        self.current_player_nodes = {}
         self.graph = Graph()
         
-        self.teambox = TeamBox(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen, self.current_player_nodes, self.graph)
+        self.teambox = TeamBox(1100, 450, 0, 0, self.screen, self.graph)
         self.sidebar = SideBar(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen)
-        self.teambox.add_references(self.sidebar)
+        self.opponentbox = OpponentBox(1100, 450, 0, 450, self.screen, self.graph)
+        self.teambox.add_references(self.sidebar, self.opponentbox)
         self.sidebar.add_references(self.teambox)
         self.sidebar.build_sidebar()
 
@@ -67,18 +64,15 @@ class Visualization:
         """
         self.sidebar.check_interaction(events)
         self.teambox.check_interaction(events)
-        for node_name in self.current_player_nodes:
-            self.current_player_nodes[node_name].check_interaction(events)
+        self.opponentbox.check_interaction(events)
     
     def render_elements(self) -> None:
         """
         Render all of the elements on screen. Whether the elements are visible or not is dependent on their internal state.
         """
-        for node_name in self.current_player_nodes:
-            player_node = self.current_player_nodes[node_name]
-            player_node.scale_and_transform()
-            player_node.render()
+        self.teambox.render()
         self.sidebar.render()
+        self.opponentbox.render()
 
     def start_visualization(self) -> None:
         """
@@ -105,11 +99,6 @@ class Visualization:
             self.clock.tick(144)
 
         pygame.quit()
-
-
-
-
-
 
 if __name__ == "__main__":
     pygameInstance = Visualization()
