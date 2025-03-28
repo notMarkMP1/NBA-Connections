@@ -85,13 +85,6 @@ class Camera:
             self.zoom = 0.33
         return
     
-    def update_position(self, mouse_delta: pygame.Vector2) -> None:
-        """
-        Shift the camera in the direction the mouse is dragging.
-        """
-        self.camera.topleft += (mouse_delta *0.1)
-        return
-    
 class PlayerNode:
     """
     a class that represents a player node on the graph. Can be interacted with to reveal more data about the player and
@@ -183,60 +176,6 @@ class PlayerNode:
                     self.is_highlighted = False
 
 
-class SearchBar:
-    """
-    A class that represents the interactive search bar.
-    Allows text input to take the player to a specific player.
-    """
-    search_bar: pygame.rect
-    text: str
-    active: bool
-    screen: pygame.display
-    
-    def __init__(self, position_x: int, position_y: int, width: int, height: int, screen: pygame.display) -> None:
-        self.rect = pygame.Rect(position_x, position_y, width, height)
-        self.text = ""
-        self.active = False
-        self.screen = screen
-
-    def render(self, font: pygame.font.Font) -> None:
-        """
-        Render the search bar with its current state and text.
-        """
-        # Choose a color based on whether the search bar is active
-        color = pygame.Color("azure3") if self.active else pygame.Color("black")
-        pygame.draw.rect(self.screen, color, self.rect)
-        #TODO: REFACTOR
-        # Render the text inside the search bar (with a little padding)
-        text = font.render(self.text, True, pygame.Color("white"))
-        self.screen.blit(text, (self.rect.x + 5, self.rect.y + 5))
-
-    def handle_event(self, event: pygame.event.Event) -> None:
-        """
-        Handle events related to text input and focus.
-        """
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # Toggle active status if the search bar is clicked
-            if self.rect.collidepoint(event.pos):
-                self.active = True
-            else:
-                self.active = False
-
-        elif event.type == pygame.KEYDOWN and self.active:
-            if event.key == pygame.K_BACKSPACE:
-                self.text = self.text[:-1]
-            elif event.key == pygame.K_RETURN:
-                print(f"Submitted search text: {self.text}")
-                # Optionally clear text after submission:
-                self.text = ""
-            else:
-                # Add the unicode of the key pressed to the search text
-                self.text += event.unicode
-
-        # Alternatively, you can use TEXTINPUT events instead of KEYDOWN for text input:
-        # elif event.type == pygame.TEXTINPUT and self.active:
-        #     self.text += event.text
-
 
 class SideBar:
     """
@@ -245,7 +184,6 @@ class SideBar:
     """
 
     sidebar: pygame.rect
-    search_bar: SearchBar
     screen: pygame.display
 
     SIDEBAR_WIDTH = 500
@@ -259,13 +197,6 @@ class SideBar:
         self.SIDEBAR_TOP = 0
 
         self.sidebar = pygame.Rect(self.SIDEBAR_LEFT, self.SIDEBAR_TOP, self.SIDEBAR_WIDTH, self.SIDEBAR_HEIGHT)
-        self.search_bar = SearchBar(
-            self.SIDEBAR_LEFT + 10,
-            self.SIDEBAR_TOP + 10,
-            self.SIDEBAR_WIDTH - 20,
-            self.SIDEBAR_HEIGHT / 20,
-            screen
-        )
         self.screen = screen
 
     def render(self) -> None:
@@ -273,14 +204,12 @@ class SideBar:
         Render the sidebar element on screen.
         """
         pygame.draw.rect(self.screen, pygame.Color("white"), self.sidebar)
-        self.search_bar.render(pygame.font.Font(None, size=36))
 
     def check_interaction(self, events: list[pygame.event.Event]) -> None:
         """
         Handle interactions with the sidebar by passing each event to the subcomponents inside of the sidebar.
         """
-        for event in events:
-            self.search_bar.handle_event(event)
+
 
 
 class TeamBox:
@@ -297,13 +226,35 @@ class TeamBox:
     screen: pygame.display
     camera: Camera
 
-    def __init__(self, SCREEN_WIDTH: int, SCREEN_HEIGHT: int, screen: pygame.display, camera: Camera) -> None:
+    is_dragging: bool
+    last_mouse_pos: tuple[int, int]
+
+    def __init__(self, SCREEN_WIDTH: int, SCREEN_HEIGHT: int, screen: pygame.display) -> None:
         self.BOX_LEFT = 0
         self.BOX_TOP = 0
 
-        self.sidebar = pygame.Rect(self.BOX_LEFT, self.BOX_TOP, self.BOX_WIDTH, self.BOX_HEIGHT)
+        self.teambox = pygame.Rect(self.BOX_LEFT, self.BOX_TOP, self.BOX_WIDTH, self.BOX_HEIGHT)
         self.screen = screen
-        self.camera = camera
+        self.camera = Camera(self.BOX_WIDTH, self.BOX_HEIGHT)
+
+        self.is_dragging = False
+        last_mouse_pos = (0, 0)
+        
+    def check_interaction(self, events: list[pygame.event.Event]) -> None:
+        """
+        Handle mouse inputs and such...
+        """
+        point = pygame.mouse.get_pos()
+        collide = self.teambox.collidepoint(point)
+        if (collide):
+            for event in events:
+                if event.type == pygame.MOUSEWHEEL:
+                    if event.y > 0:  # Scroll up (zoom in)
+                        self.camera.zoom_in()
+                    elif event.y < 0:  # Scroll down (zoom out)
+                        self.camera.zoom_out()
+
+
 
 
     def is_valid_point(self, new_point, existing_points, min_distance) -> bool:
@@ -315,10 +266,11 @@ class TeamBox:
     def get_points(self) -> list[tuple[int, int]]:
 
         # Define bounds
-        x_min, y_min = 0, 0
-        x_max, y_max = 1110, 450
+
         radius = 30
         min_spacing = radius * 2  # Ensure circles don't overlap
+        x_min, y_min = min_spacing, min_spacing
+        x_max, y_max = self.BOX_WIDTH - min_spacing, self.BOX_HEIGHT - min_spacing
 
         points = []
 

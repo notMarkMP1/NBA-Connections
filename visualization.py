@@ -1,7 +1,7 @@
 # Example file showing a basic pygame "game loop"
 import pygame
 from classes import Graph, Vertex, PlayerData
-from display_classes import PlayerNode, Camera, SearchBar, SideBar, DisplayData, TeamBox
+from display_classes import PlayerNode, Camera, SideBar, DisplayData, TeamBox
 
 
 class Visualization:
@@ -19,8 +19,6 @@ class Visualization:
     clock: pygame.time.Clock
 
     running: bool
-    is_dragging: bool
-    last_mouse_pos: tuple[int, int]
 
     def __init__(self) -> None:
         """
@@ -29,7 +27,7 @@ class Visualization:
 
         pygame.init()
         self.screen = pygame.display.set_mode((1600, 900))
-        self.camera = Camera(1600, 900)
+        #self.camera = Camera(1600, 900)
         self.clock = pygame.time.Clock()
 
         self.running = True
@@ -40,7 +38,7 @@ class Visualization:
         SCREEN_HEIGHT = self.screen.get_height()
 
         self.sidebar = SideBar(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen)
-        self.teambox = TeamBox(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen, self.camera)
+        self.teambox = TeamBox(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen)
 
         self.current_player_nodes = {}
         self.graph = Graph()
@@ -64,6 +62,7 @@ class Visualization:
         and the UI elements to check if any updates need to occur.
         """
         self.sidebar.check_interaction(events)
+        self.teambox.check_interaction(events)
         for node_name in self.current_player_nodes:
             self.current_player_nodes[node_name].check_interaction(events)
     
@@ -91,7 +90,7 @@ class Visualization:
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
-                elif event.type == pygame.MOUSEWHEEL:
+                """elif event.type == pygame.MOUSEWHEEL:
                     if event.y > 0:  # Scroll up (zoom in)
                         self.camera.zoom_in()
                     elif event.y < 0:  # Scroll down (zoom out)
@@ -106,7 +105,7 @@ class Visualization:
                 elif event.type == pygame.MOUSEMOTION and self.is_dragging:
                     mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
                     mouse_delta = mouse_pos - self.last_mouse_pos
-                    self.camera.update_position(mouse_delta)
+                    self.camera.update_position(mouse_delta)"""
 
 
             self.screen.fill("azure")
