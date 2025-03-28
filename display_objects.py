@@ -139,11 +139,15 @@ class PlayerNode:
         text_to_render = text_surface.get_rect(center=self.object.center)
         self.screen.blit(text_surface, text_to_render)
 
-    def render_connections(self) -> None:
+    def render_connection(self, node: "PlayerNode") -> None:
         """
-        #TODO: DRAW THE FUCK ASS LINES FROM ONE NODE TO ANOTHER
+        Draw a line between this node and another, assumign that this node is the ENDPOINT. 
         """
-    
+        current_position = self.object.center
+        other_position = node.object.center
+
+        pygame.draw.line(self.screen, (200, 200, 200), current_position, other_position, 1)
+
     def check_interaction(self, events: list[pygame.event.Event]) -> Optional["PlayerNode"]:
         """
         Handle when the player interacts with this object. Highlight if the player mouses over, and depending if it was clicked or not,

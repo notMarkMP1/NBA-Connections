@@ -89,7 +89,7 @@ class DisplayBox:
 
         for i in range(num_of_players):
             default_points.append((current_x, current_y))
-            current_x += min_spacing
+            current_x += min_spacing * 2
             if current_x >= x_max:
                 current_x = x_min
                 current_y += min_spacing
@@ -189,6 +189,8 @@ class OpponentBox(DisplayBox):
     current_player_nodes: dict[str, PlayerNode]
     graph: Graph
 
+
+    reference_player: PlayerNode
     sidebar: "SideBar"
 
     def __init__(self,
@@ -204,6 +206,7 @@ class OpponentBox(DisplayBox):
 
         self.current_player_nodes = {}
         self.graph = graph
+        self.reference_player = None
 
     def check_interaction(self, events: list[pygame.event.Event]) -> None:
         """
@@ -220,6 +223,11 @@ class OpponentBox(DisplayBox):
         super().render()
         for node_name in self.current_player_nodes:
             player_node = self.current_player_nodes[node_name]
+            if self.reference_player is not None:
+                player_node.render_connection(self.reference_player)
+
+        for node_name in self.current_player_nodes:
+            player_node = self.current_player_nodes[node_name]
             player_node.scale_and_transform()
             player_node.render()
 
@@ -228,11 +236,19 @@ class OpponentBox(DisplayBox):
         """Add references to the other major objects."""
         self.sidebar = sidebar
 
+    def refresh(self) -> None:
+        """
+        Refresh the display to show nothing. Called when the user swaps to a new team.
+        """
+        self.current_player_nodes.clear()
+        self.reference_player = None 
+
     def generate_nodes(self, player: PlayerNode) -> None:
         """
         Given a player node, generate all of their connected nodes in the opponent box.
         """
         self.current_player_nodes.clear()
+        self.reference_player = player
 
         opponents_to_generate = []
         for edge in player.player_vertex.neighbours:
@@ -266,6 +282,7 @@ class SideBar:
     sidebar: pygame.rect
     screen: pygame.display
     teambox: TeamBox
+    opponentbox: OpponentBox
     team_buttons: list[TeamButton]
 
     SIDEBAR_WIDTH = 500
@@ -282,9 +299,10 @@ class SideBar:
         self.screen = screen
         self.team_buttons = []
     
-    def add_references(self, teambox: TeamBox) -> None:
+    def add_references(self, teambox: TeamBox, opponentbox: OpponentBox) -> None:
         """Maintain references to the other big objects."""
         self.teambox = teambox
+        self.opponentbox = opponentbox
 
     def build_sidebar(self) -> None:
         """Add all of the components of the sidebar in. Call after all references to other objects have been finalized."""
@@ -315,5 +333,6 @@ class SideBar:
             result = team_button.check_interaction(events)
             if result:
                 self.teambox.generate_nodes(result)
+                self.opponentbox.refresh()
 
 

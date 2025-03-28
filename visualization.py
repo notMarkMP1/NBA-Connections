@@ -39,11 +39,8 @@ class Visualization:
         self.sidebar = SideBar(SCREEN_WIDTH, SCREEN_HEIGHT, self.screen)
         self.opponentbox = OpponentBox(1100, 450, 0, 450, self.screen, self.graph)
         self.teambox.add_references(self.sidebar, self.opponentbox)
-        self.sidebar.add_references(self.teambox)
+        self.sidebar.add_references(self.teambox, self.opponentbox)
         self.sidebar.build_sidebar()
-
-
-        self.teambox.generate_nodes("TOR")
 
     def generate_data(self) -> None:
         """
@@ -70,9 +67,10 @@ class Visualization:
         """
         Render all of the elements on screen. Whether the elements are visible or not is dependent on their internal state.
         """
+        self.opponentbox.render()
         self.teambox.render()
         self.sidebar.render()
-        self.opponentbox.render()
+        
 
     def start_visualization(self) -> None:
         """
