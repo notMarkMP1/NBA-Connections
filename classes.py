@@ -46,13 +46,13 @@ class Vertex:
     def calculate_average_teammate_winrate(self) -> float:
         """
         Return a player's teammate average winrate across every player they've been both teammates and opponents with.
-        Include playoff stats.
+        Include playoff stats
         """
         total_winrate = 0.0
         count = 0
         for n in self.neighbours:
             if 'w_pct' in n.teammate_stats:
-                total_winrate += n.teammate_stats['w_pct']
+                total_winrate += float(n.teammate_stats['w_pct'])
                 count += 1
         if count > 0:
             return total_winrate / count
@@ -62,57 +62,34 @@ class Vertex:
     def calculate_average_opponent_winrate(self) -> float:
         """
         Return a player's opponent average winrate across every player they've been both teammates and opponents with.
-        Include playoff stats.
+        Include playoff stats
         """
         total_winrate = 0.0
         count = 0
         for n in self.neighbours:
             if 'w_pct' in n.opponent_stats:
-                total_winrate += n.opponent_stats['w_pct']
+                total_winrate += float(n.opponent_stats['w_pct'])
                 count += 1
         if count > 0:
             return total_winrate / count
         else:
             return 0.0
 
-    def compute_winrate_difference(self) -> float:
+    def check_winrate_correlation(self) -> float:
         """
-        Calculate the absolute difference between the average opponent and teammmate winrates.
+        Calculate the absolute difference between the average opponent and teammmate winrates
         """
         return abs(self.calculate_average_teammate_winrate() - self.calculate_average_opponent_winrate())
 
-    def check_winrate_correlation(self, name1: str) -> tuple[float, float]:
+    def compute_winrate_difference(self, other_player: Vertex) -> tuple[float, float]:
         """
-        Calculate the difference between this player's (self) statistics with player name1 versus their average
-        statistics against all players.
+        Calculate the difference between this player's (self) average winrates for teammates and opponents versus
+        their winrates for the other player's (name1) winrates
         """
-        if name1 not in player_graph.vertices:
-            return (0.0, 0.0)
-
-        teammate_success, opponent_success = 0.0, 0.0
-        for edge1 in self.neighbours:
-            if edge1.points_towards.name == name1:
-                teammate_success = float(edge1.teammate_stats.get("w_pct", 0.0))
-                opponent_success = float(edge1.opponent_stats.get("w_pct", 0.0))
-                break
-
         return (
-            abs(self.calculate_average_teammate_winrate() - teammate_success),
-            abs(self.calculate_average_opponent_winrate() - opponent_success)
+            abs(self.calculate_average_teammate_winrate() - other_player.calculate_average_teammate_winrate()),
+            abs(self.calculate_average_opponent_winrate() - other_player.calculate_average_opponent_winrate())
         )
-
-    def return_edge_info(self, name1: str) -> Optional[dict]:
-        """
-        If this player is adjacent to name1, return a dictionary containing the teammate and opponent stats for the
-        corresponding edge. Otherwise, return None.
-        """
-        for edge1 in self.neighbours:
-            if edge1.points_towards.name == name1:
-                return {
-                    'teammate_stats': edge1.teammate_stats,
-                    'opponent_stats': edge1.opponent_stats
-                }
-        return None
 
 
 class Graph:
@@ -122,6 +99,51 @@ class Graph:
     def __init__(self) -> None:
         """Initialize an empty graph"""
         self.vertices = {}
+        self.initialize_graph()
+
+
+    def initialize_graph(self) -> None:
+        with open('players_stats.json', 'r') as openfile:
+            stats_data = json.load(openfile)
+
+        for name, info in stats_data.items():
+            # Add only the active players
+            if info.get('active', False):
+                self.add_vertex(name)
+                player_stats = PlayerData(seasons=info.get('seasons', []),
+                                        first_team=info.get('first_team', ''),
+                                        last_team=info.get('last_team', ''),
+                                        stats=info.get('stats', {}),
+                                        image_link=info.get('image', ''))
+
+                self.vertices[name].expanded_data = player_stats
+
+        with open('active_players.json', 'r') as openfile:
+            player_connections = json.load(openfile)
+
+        for name, connections in player_connections.items():
+            # Access the vertex of the player so we can add its edges
+            player_vertex = self.vertices.get(name)
+
+            # Shouldn't happen but be safe
+            if not player_vertex:
+                continue
+
+            for connection in connections:
+                other_name = connection['name']
+
+                # Apparently we need to skip players not in the graph
+                if other_name not in self.vertices:
+                    continue
+
+                tmt_stats = connection.get('teammate_stats', {})
+                opp_stats = connection.get('opponent_stats', {})
+
+                edge = Edge(points_towards=self.vertices[other_name],
+                            teammate_stats=tmt_stats,
+                            opponent_stats=opp_stats)
+
+                player_vertex.neighbours.add(edge)
 
     def add_vertex(self, player_name: str) -> None:
         """Add a vertex representing a player with the given name to this graph
@@ -133,12 +155,12 @@ class Graph:
 
     def check_winrate_correlation(self) -> float:
         """
-        Iterate through all the vertices and average their winrate_correlation() to get a stat.
+        Iterate through all of the vertices and average their winrate_correlation() to get a stat.
         """
         total_correlation = 0.0
         count = 0
         for vertex in self.vertices.values():
-            total_correlation += vertex.compute_winrate_difference()
+            total_correlation += vertex.check_winrate_correlation()
             count += 1
         if count > 0:
             return total_correlation / count
@@ -180,63 +202,3 @@ class PlayerData:
         self.last_team = last_team
         self.stats = stats
         self.image_link = image_link
-
-
-# Actual graph generation
-# I don't know if we want to put all of this in a callable function later, but we can
-player_graph = Graph()
-with open('players_stats.json', 'r') as openfile:
-    stats_data = json.load(openfile)
-
-for name, info in stats_data.items():
-    # Add only the active players
-    if info.get('active', False):
-        player_graph.add_vertex(name)
-
-        player_stats = PlayerData(seasons=info.get('seasons', []),
-                                  first_team=info.get('first_team', ''),
-                                  last_team=info.get('last_team', ''),
-                                  stats=info.get('stats', {}),
-                                  image_link=info.get('image', ''))
-
-        player_graph.vertices[name].expanded_data = player_stats
-
-# print(player_graph.vertices["Stephen Curry"].expanded_data.stats)
-
-with open('active_players.json', 'r') as openfile:
-    player_connections = json.load(openfile)
-
-for name, connections in player_connections.items():
-    # Access the vertex of the player so we can add its edges
-    player_vertex = player_graph.vertices.get(name)
-
-    # Shouldn't happen but be safe
-    if not player_vertex:
-        continue
-
-    for connection in connections:
-        other_name = connection['name']
-
-        # Apparently we need to skip players not in the graph
-        if other_name not in player_graph.vertices:
-            continue
-
-        tmt_stats = connection.get('teammate_stats', {})
-        opp_stats = connection.get('opponent_stats', {})
-
-        edge = Edge(points_towards=player_graph.vertices[other_name],
-                    teammate_stats=tmt_stats,
-                    opponent_stats=opp_stats)
-
-        player_vertex.neighbours.add(edge)
-
-'''
-Testing
-vertex = player_graph.vertices.get("Immanuel Quickley")
-if vertex:
-    for edge in vertex.neighbours:
-        print(f"{vertex.name} ↔ {edge.points_towards.name}")
-        print(f"Teammate games: {edge.teammate_stats.get('games')}")
-        print(f"Opponent games: {edge.opponent_stats.get('games')}")
-        print("---")
-'''
