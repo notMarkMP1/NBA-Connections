@@ -83,13 +83,37 @@ class Vertex:
 
     def compute_winrate_difference(self, other_player: Vertex) -> tuple[float, float]:
         """
-        Calculate the difference between this player's (self) average winrates for teammates and opponents versus
-        their winrates for the other player's (name1) winrates
+        Calculate the difference between this player's (self) statistics with player name1 versus their average
+        statistics against all players.
         """
+        name1 = other_player.name
+        # if name1 not in player_graph.vertices: I can't do this without player graph or if this is in vertex
+        #    return (0.0, 0.0)
+
+        teammate_success, opponent_success = 0.0, 0.0
+        for edge1 in self.neighbours:
+            if edge1.points_towards.name == name1:
+                teammate_success = float(edge1.teammate_stats.get("w_pct", 0.0))
+                opponent_success = float(edge1.opponent_stats.get("w_pct", 0.0))
+                break
+
         return (
-            abs(self.calculate_average_teammate_winrate() - other_player.calculate_average_teammate_winrate()),
-            abs(self.calculate_average_opponent_winrate() - other_player.calculate_average_opponent_winrate())
+            abs(self.calculate_average_teammate_winrate() - teammate_success),
+            abs(self.calculate_average_opponent_winrate() - opponent_success)
         )
+
+    def return_edge_info(self, name1: str) -> Optional[dict]:
+        """
+        If this player is adjacent to name1, return a dictionary containing the teammate and opponent stats for the
+        corresponding edge. Otherwise, return None.
+        """
+        for edge1 in self.neighbours:
+            if edge1.points_towards.name == name1:
+                return {
+                    'teammate_stats': edge1.teammate_stats,
+                    'opponent_stats': edge1.opponent_stats
+                }
+        return None
 
 
 class Graph:
@@ -101,8 +125,10 @@ class Graph:
         self.vertices = {}
         self.initialize_graph()
 
-
     def initialize_graph(self) -> None:
+        """
+        Initialize a graph with vertices for all active players, creating edges where needed.
+        """
         with open('players_stats.json', 'r') as openfile:
             stats_data = json.load(openfile)
 
@@ -111,10 +137,10 @@ class Graph:
             if info.get('active', False):
                 self.add_vertex(name)
                 player_stats = PlayerData(seasons=info.get('seasons', []),
-                                        first_team=info.get('first_team', ''),
-                                        last_team=info.get('last_team', ''),
-                                        stats=info.get('stats', {}),
-                                        image_link=info.get('image', ''))
+                                          first_team=info.get('first_team', ''),
+                                          last_team=info.get('last_team', ''),
+                                          stats=info.get('stats', {}),
+                                          image_link=info.get('image', ''))
 
                 self.vertices[name].expanded_data = player_stats
 
@@ -155,7 +181,7 @@ class Graph:
 
     def check_winrate_correlation(self) -> float:
         """
-        Iterate through all of the vertices and average their winrate_correlation() to get a stat.
+        Iterate through all the vertices and average their winrate_correlation() to get a stat.
         """
         total_correlation = 0.0
         count = 0
