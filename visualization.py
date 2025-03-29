@@ -17,7 +17,7 @@ class Visualization:
     clock: pygame.time.Clock
 
     running: bool
-
+ 
     def __init__(self) -> None:
         """
         Initialize an instance of the visualization tool.
@@ -40,19 +40,8 @@ class Visualization:
         self.opponentbox = OpponentBox(1100, 450, 0, 450, self.screen, self.graph)
         self.teambox.add_references(self.sidebar, self.opponentbox)
         self.sidebar.add_references(self.teambox, self.opponentbox)
+        self.opponentbox.add_references(self.sidebar)
         self.sidebar.build_sidebar()
-
-    def generate_data(self) -> None:
-        """
-        Iterate through the graph and create playernodes for each player data point. Store in the playernodes
-        map that maps their id to their playernode object.
-        """
-        team_names = DisplayData().teams
-        
-    def initializeElements(self) -> None:
-        """
-        Generate all of the pygame instances of the elements to be displayed visually.
-        """
 
     def check_interactions(self, events: list[pygame.event.Event]) -> None:
         """

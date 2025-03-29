@@ -147,10 +147,11 @@ class TeamBox(DisplayBox):
         point = pygame.mouse.get_pos()
         collide = self.box.collidepoint(point)
         if collide:
-            for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box
+            for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box and sidebar
                 result = self.current_player_nodes[node_name].check_interaction(events)
                 if result:
                     self.opponentbox.generate_nodes(result)
+                    self.sidebar.update_main_stat_list(result)
 
     def render(self) -> None:
         """Render itself, and all of the elements inside of it."""
@@ -219,10 +220,10 @@ class OpponentBox(DisplayBox):
         point = pygame.mouse.get_pos()
         collide = self.box.collidepoint(point)
         if collide:
-            """for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box
+            for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box and sidebar
                 result = self.current_player_nodes[node_name].check_interaction(events)
                 if result:
-                    print(result)"""
+                    self.sidebar.update_opponent_stat_list(result)
 
     def render(self) -> None:
         """Render itself, and all of the elements inside of it."""
@@ -271,8 +272,6 @@ class OpponentBox(DisplayBox):
                                                                 opponent,
                                                                 opponent.expanded_data)
             index += 1
-        
-    
 
 class StatList:
     """
@@ -288,6 +287,7 @@ class StatList:
     screen: pygame.display
 
     current_player: PlayerNode | None
+    stats: dict[str, str]
 
     def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
         self.screen = screen
@@ -296,12 +296,47 @@ class StatList:
         self.LIST_LEFT = position_x
         self.LIST_TOP = position_y
         self.box = pygame.Rect(self.LIST_LEFT, self.LIST_TOP, self.LIST_WIDTH, self.LIST_HEIGHT)
+        self.stats = {}
+        self.current_player = None
 
     def update_current_player(self, new_player: PlayerNode) -> None:
         self.current_player = new_player
-    
+        player_data = self.current_player.player_vertex.expanded_data
+        self.stats = {}
+        #TODO: TRY CATCH STATEMENTS FOR THIS BULLSHIT???
+        self.stats["Name"] = self.current_player.player_vertex.name
+        self.stats["First Season"] = player_data.seasons[0]
+        self.stats["First Team"] = player_data.first_team
+        self.stats["Current Team"] = player_data.last_team
+        self.stats["Total Points"] = player_data.stats["points"]
+        try:
+            self.stats["Career Field Goal %"] = str(player_data.stats["fgp"])
+            self.stats["Career 3PT Field Goal %"] = str(player_data.stats["fg3p"])
+        except Exception as e:
+            self.stats["Career Field Goal %"] = "N/A"
+            self.stats["Career 3PT Field Goal %"] = "N/A"
+
     def render(self) -> None:
         pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
+        if self.stats != {}:
+            title_surface = pygame.font.Font(None, size=24).render(f"{self.stats["Name"]}", True, (0, 0, 0))
+            title_position = title_surface.get_rect(center=(self.LIST_LEFT + (self.LIST_WIDTH//2), self.LIST_TOP + 20))
+            self.screen.blit(title_surface, title_position)
+            #TODO: RENDER THE REST OF THE STATS
+            current_x = self.LIST_LEFT + 10
+            current_y = self.LIST_TOP + 50
+            for stat in self.stats:
+                if stat == "Name":
+                    continue
+                text_surface = pygame.font.Font(None, size=18).render(f"{stat}: {self.stats[stat]}", True, (0, 0, 0))
+                text_position = text_surface.get_rect(topleft=(current_x, current_y))
+                current_y += 15
+                self.screen.blit(text_surface, text_position)
+    
+    def refresh(self) -> None:
+        self.stats = {}
+        self.current_player = None
+
 
 
 class SideBar:
@@ -351,7 +386,8 @@ class SideBar:
                 start_y += 30
                 start_x = self.SIDEBAR_LEFT + 75
             index += 1
-        self.main_stat_list = StatList(self.screen, self.SIDEBAR_WIDTH - 10, 200, self.SIDEBAR_LEFT + 10, self.SIDEBAR_HEIGHT//2)
+        self.main_stat_list = StatList(self.screen, (self.SIDEBAR_WIDTH-20)//2, 200, self.SIDEBAR_LEFT + 10, self.SIDEBAR_HEIGHT//2)
+        self.opponent_stat_list = StatList(self.screen, (self.SIDEBAR_WIDTH-20)//2, 200, self.SIDEBAR_LEFT + (self.SIDEBAR_WIDTH-20)//2 + 15, self.SIDEBAR_HEIGHT//2)
 
     def render(self) -> None:
         """
@@ -364,6 +400,8 @@ class SideBar:
         self.screen.blit(team_text_surface, text_position)
         for team_button in self.team_buttons:
             team_button.render()
+        self.main_stat_list.render()
+        self.opponent_stat_list.render()
 
     def check_interaction(self, events: list[pygame.event.Event]) -> None:
         """
@@ -374,5 +412,12 @@ class SideBar:
             if result:
                 self.teambox.generate_nodes(result)
                 self.opponentbox.refresh()
+                self.main_stat_list.refresh()
+                self.opponent_stat_list.refresh()
 
+    def update_main_stat_list(self, player: PlayerNode) -> None:
+        self.main_stat_list.update_current_player(player)
+
+    def update_opponent_stat_list(self, player: PlayerNode) -> None:
+        self.opponent_stat_list.update_current_player(player)
 
