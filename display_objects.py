@@ -51,7 +51,11 @@ class DisplayData:
             return self.team_colours[team_name]
         else:
             return (255, 255, 255)
-        
+    
+    def float_to_percentage(self, value: str) -> str:
+        """Converts a float string to a percentage string with 2 decimal places."""
+        return f"{(float(value)*100):.1f}%"
+
 
 class Camera:
     # TODO: MAKE MAXIMUM + MINIMUM ZOOM
@@ -135,7 +139,12 @@ class PlayerNode:
         else:
             pygame.draw.circle(self.screen, self.color, self.object.center, self.object.width)
         
-        text_surface = pygame.font.Font(None, size=int(self.font_size*self.camera.zoom)).render(f"{self.player_vertex.name}", True, (0, 0, 0))
+        if self.color[0] + self.color[1] + self.color[2] > 200:
+            text_color = (0, 0, 0)
+        else:
+            text_color = (255, 255, 255)
+
+        text_surface = pygame.font.Font(None, size=int(self.font_size*self.camera.zoom)).render(f"{self.player_vertex.name}", True, text_color)
         text_position = text_surface.get_rect(center=self.object.center)
         self.screen.blit(text_surface, text_position)
 
@@ -206,3 +215,177 @@ class TeamButton:
             for event in events:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
                     return self.team
+                
+class WinrateMetrics:
+    """
+    A class that represents the winrate display of each player. Gives their winrate % against all opponents, against former teammates,
+    and their differences.
+    """
+
+    LIST_WIDTH: int
+    LIST_HEIGHT: int
+    LIST_LEFT: int
+    LIST_TOP: int
+    box: pygame.rect
+
+    screen: pygame.display
+
+    current_player: PlayerNode | None
+    metrics: dict[str, str]
+    
+    def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
+        self.screen = screen
+        self.LIST_WIDTH = width
+        self.LIST_HEIGHT = height
+        self.LIST_LEFT = position_x
+        self.LIST_TOP = position_y
+        self.box = pygame.Rect(self.LIST_LEFT, self.LIST_TOP, self.LIST_WIDTH, self.LIST_HEIGHT)
+        self.metrics = {}
+        self.current_player = None
+
+    def render(self) -> None:
+        pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
+        if self.metrics != {}:
+            title_surface = pygame.font.Font(None, size=24).render(f"Overall Winrate Statistics For {self.metrics["Name"]}", True, (0, 0, 0))
+            title_position = title_surface.get_rect(topleft=(self.LIST_LEFT + 10, self.LIST_TOP + 20))
+            self.screen.blit(title_surface, title_position)
+            current_x = self.LIST_LEFT + 10
+            current_y = self.LIST_TOP + 40
+            for metric in self.metrics:
+                if metric == "Name":
+                    continue
+                text_surface = pygame.font.Font(None, size=20).render(f"{metric}: {DisplayData().float_to_percentage(self.metrics[metric])}", True, (0, 0, 0))
+                text_position = text_surface.get_rect(topleft=(current_x, current_y))
+                current_y += 15
+                self.screen.blit(text_surface, text_position)
+    
+    def update_current_player(self, new_player: PlayerNode) -> None:
+        self.current_player = new_player
+        player_vertex = self.current_player.player_vertex
+        self.metrics["Name"] = player_vertex.name
+        self.metrics["Winrate % Against Former Teammates"] = player_vertex.calculate_average_teammate_winrate()
+        self.metrics["Winrate % Against All Opponents"] = player_vertex.calculate_average_opponent_winrate()
+        self.metrics["Absolute Winrate Difference"] = player_vertex.check_winrate_correlation()
+    
+    def refresh(self) -> None:
+        self.metrics = {}
+        self.current_player = None
+
+class HeadToHeadMetrics:
+    """
+    A class that represents the head to head metrics of the two players being currently compared.
+    """
+    LIST_WIDTH: int
+    LIST_HEIGHT: int
+    LIST_LEFT: int
+    LIST_TOP: int
+    box: pygame.rect
+
+    screen: pygame.display
+
+    current_player: PlayerNode | None
+    current_opponent: PlayerNode | None
+    metrics: dict[str, str]
+
+    def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
+        self.screen = screen
+        self.LIST_WIDTH = width
+        self.LIST_HEIGHT = height
+        self.LIST_LEFT = position_x
+        self.LIST_TOP = position_y
+        self.box = pygame.Rect(self.LIST_LEFT, self.LIST_TOP, self.LIST_WIDTH, self.LIST_HEIGHT)
+        self.metrics = {}
+        self.current_player = None
+        self.current_opponent = None
+
+    def render(self) -> None:
+        """"""
+        pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
+        if self.metrics != {}:
+            print("LOAD THE STATS!")
+
+    def refresh(self) -> None:
+        self.metrics = {}
+        self.current_player = None
+        self.current_opponent = None
+
+    def update_display(self) -> None:
+        """
+        Check if both current_player and current_opponent are stored, and then load their metrics accordingly.
+        """
+        if self.current_player is not None and self.current_opponent is not None:
+            print("LOAD THAT BITCH!!!")
+
+    def update_current_player(self, new_player: PlayerNode) -> None:
+        self.current_player = new_player
+    
+    def update_current_opponent(self, new_player: PlayerNode) -> None:
+        self.current_opponent = new_player
+        self.update_display()
+
+class StatList:
+    """
+    A class that represents the stats display of each player. Gives their name, basic stats, and more. 
+    """ 
+
+    LIST_WIDTH: int
+    LIST_HEIGHT: int
+    LIST_LEFT: int
+    LIST_TOP: int
+    box: pygame.rect
+
+    screen: pygame.display
+
+    current_player: PlayerNode | None
+    stats: dict[str, str]
+
+    def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
+        self.screen = screen
+        self.LIST_WIDTH = width
+        self.LIST_HEIGHT = height
+        self.LIST_LEFT = position_x
+        self.LIST_TOP = position_y
+        self.box = pygame.Rect(self.LIST_LEFT, self.LIST_TOP, self.LIST_WIDTH, self.LIST_HEIGHT)
+        self.stats = {}
+        self.current_player = None
+
+    def update_current_player(self, new_player: PlayerNode) -> None:
+        self.current_player = new_player
+        player_data = self.current_player.player_vertex.expanded_data
+        self.stats = {}
+        #TODO: TRY CATCH STATEMENTS FOR THIS BULLSHIT???
+        self.stats["Name"] = self.current_player.player_vertex.name
+        self.stats["First Season"] = player_data.seasons[0]
+        self.stats["First Team"] = player_data.first_team
+        self.stats["Current Team"] = player_data.last_team
+        self.stats["Total Points"] = player_data.stats["points"]
+        try:
+            self.stats["Career Field Goal %"] = str(player_data.stats["fgp"])
+            self.stats["Career 3PT Field Goal %"] = str(player_data.stats["fg3p"])
+        except Exception as e:
+            self.stats["Career Field Goal %"] = "N/A"
+            self.stats["Career 3PT Field Goal %"] = "N/A"
+
+    def render(self) -> None:
+        pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
+        if self.stats != {}:
+            title_surface = pygame.font.Font(None, size=24).render(f"{self.stats["Name"]}", True, (0, 0, 0))
+            title_position = title_surface.get_rect(center=(self.LIST_LEFT + (self.LIST_WIDTH//2), self.LIST_TOP + 20))
+            self.screen.blit(title_surface, title_position)
+            #TODO: RENDER THE REST OF THE STATS
+            current_x = self.LIST_LEFT + 10
+            current_y = self.LIST_TOP + 50
+            for stat in self.stats:
+                if stat == "Name":
+                    continue
+                if stat not in ["Career Field Goal %", "Career 3PT Field Goal %"]:
+                    text_surface = pygame.font.Font(None, size=20).render(f"{stat}: {self.stats[stat]}", True, (0, 0, 0))
+                else:
+                    text_surface = pygame.font.Font(None, size=20).render(f"{stat}: {DisplayData().float_to_percentage(self.stats[stat])}", True, (0, 0, 0))
+                text_position = text_surface.get_rect(topleft=(current_x, current_y))
+                current_y += 25
+                self.screen.blit(text_surface, text_position)
+    
+    def refresh(self) -> None:
+        self.stats = {}
+        self.current_player = None

@@ -52,7 +52,7 @@ class Vertex:
         count = 0
         for n in self.neighbours:
             if 'w_pct' in n.teammate_stats:
-                total_winrate += n.teammate_stats['w_pct']
+                total_winrate += float(n.teammate_stats['w_pct'])
                 count += 1
         if count > 0:
             return total_winrate / count
@@ -68,7 +68,7 @@ class Vertex:
         count = 0
         for n in self.neighbours:
             if 'w_pct' in n.opponent_stats:
-                total_winrate += n.opponent_stats['w_pct']
+                total_winrate += float(n.opponent_stats['w_pct'])
                 count += 1
         if count > 0:
             return total_winrate / count
@@ -81,15 +81,11 @@ class Vertex:
         """
         return abs(self.calculate_average_teammate_winrate() - self.calculate_average_opponent_winrate())
 
-    def compute_winrate_difference(self, name1: str) -> tuple[float, float]:
+    def compute_winrate_difference(self, other_player: Vertex) -> tuple[float, float]:
         """
-        Calculate the differnce between this player's (self) average winrates for teammates and opponents versus
+        Calculate the difference between this player's (self) average winrates for teammates and opponents versus
         their winrates for the other player's (name1) winrates
         """
-        if name1 not in player_graph.vertices:
-            return (0.0, 0.0)
-
-        other_player = player_graph.vertices[name1]
         return (
             abs(self.calculate_average_teammate_winrate() - other_player.calculate_average_teammate_winrate()),
             abs(self.calculate_average_opponent_winrate() - other_player.calculate_average_opponent_winrate())
@@ -103,6 +99,7 @@ class Graph:
     def __init__(self) -> None:
         """Initialize an empty graph"""
         self.vertices = {}
+        self.initialize_graph()
 
 
     def initialize_graph(self) -> None:

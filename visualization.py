@@ -77,7 +77,7 @@ class Visualization:
                     self.running = False
 
 
-            self.screen.fill("azure")
+            self.screen.fill((128, 128, 128))
             self.check_interactions(events)
             self.render_elements()
 
