@@ -328,9 +328,9 @@ class StatList:
             for stat in self.stats:
                 if stat == "Name":
                     continue
-                text_surface = pygame.font.Font(None, size=18).render(f"{stat}: {self.stats[stat]}", True, (0, 0, 0))
+                text_surface = pygame.font.Font(None, size=20).render(f"{stat}: {self.stats[stat]}", True, (0, 0, 0))
                 text_position = text_surface.get_rect(topleft=(current_x, current_y))
-                current_y += 15
+                current_y += 25
                 self.screen.blit(text_surface, text_position)
     
     def refresh(self) -> None:
