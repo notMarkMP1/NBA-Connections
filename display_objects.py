@@ -136,8 +136,8 @@ class PlayerNode:
             pygame.draw.circle(self.screen, self.color, self.object.center, self.object.width)
         
         text_surface = pygame.font.Font(None, size=int(self.font_size*self.camera.zoom)).render(f"{self.player_vertex.name}", True, (0, 0, 0))
-        text_to_render = text_surface.get_rect(center=self.object.center)
-        self.screen.blit(text_surface, text_to_render)
+        text_position = text_surface.get_rect(center=self.object.center)
+        self.screen.blit(text_surface, text_position)
 
     def render_connection(self, node: "PlayerNode") -> None:
         """
@@ -193,9 +193,10 @@ class TeamButton:
 
     def render(self) -> None:
         """Display this element."""
-        pygame.draw.rect(self.screen, (200, 200, 200), self.button, border_radius=5)
-        text = pygame.font.Font(None, size=22).render(f"{self.team}", True, (0, 0, 0))
-        self.screen.blit(text, self.button.center)
+        pygame.draw.rect(self.screen, DisplayData().get_team_colour(self.team), self.button, border_radius=5)
+        text_surface = pygame.font.Font(None, size=22).render(f"{self.team}", True, (255, 255, 255))
+        text_position = text_surface.get_rect(center=self.button.center)
+        self.screen.blit(text_surface, text_position)
 
     def check_interaction(self, events: list[pygame.event.Event]) -> str:
         """Handle interaction with this element."""

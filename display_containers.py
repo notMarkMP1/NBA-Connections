@@ -144,10 +144,13 @@ class TeamBox(DisplayBox):
         Handle mouse inputs and such...
         """
         super().check_interaction(events)
-        for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box
-            result = self.current_player_nodes[node_name].check_interaction(events)
-            if result:
-                self.opponentbox.generate_nodes(result)
+        point = pygame.mouse.get_pos()
+        collide = self.box.collidepoint(point)
+        if collide:
+            for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box
+                result = self.current_player_nodes[node_name].check_interaction(events)
+                if result:
+                    self.opponentbox.generate_nodes(result)
 
     def render(self) -> None:
         """Render itself, and all of the elements inside of it."""
@@ -213,10 +216,13 @@ class OpponentBox(DisplayBox):
         Handle mouse inputs and such...
         """
         super().check_interaction(events)
-        """for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box
-            result = self.current_player_nodes[node_name].check_interaction(events)
-            if result:
-                print(result)"""
+        point = pygame.mouse.get_pos()
+        collide = self.box.collidepoint(point)
+        if collide:
+            """for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box
+                result = self.current_player_nodes[node_name].check_interaction(events)
+                if result:
+                    print(result)"""
 
     def render(self) -> None:
         """Render itself, and all of the elements inside of it."""
@@ -270,8 +276,33 @@ class OpponentBox(DisplayBox):
 
 class StatList:
     """
+    A class that represents the stats display of each each player. Gives their name, basic stats, and more. 
+    """ 
+
+    LIST_WIDTH: int
+    LIST_HEIGHT: int
+    LIST_LEFT: int
+    LIST_TOP: int
+    box: pygame.rect
+
+    screen: pygame.display
+
+    current_player: PlayerNode | None
+
+    def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
+        self.screen = screen
+        self.LIST_WIDTH = width
+        self.LIST_HEIGHT = height
+        self.LIST_LEFT = position_x
+        self.LIST_TOP = position_y
+        self.box = pygame.Rect(self.LIST_LEFT, self.LIST_TOP, self.LIST_WIDTH, self.LIST_HEIGHT)
+
+    def update_current_player(self, new_player: PlayerNode) -> None:
+        self.current_player = new_player
     
-    """
+    def render(self) -> None:
+        pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
+
 
 class SideBar:
     """
@@ -281,9 +312,11 @@ class SideBar:
 
     sidebar: pygame.rect
     screen: pygame.display
+
     teambox: TeamBox
     opponentbox: OpponentBox
     team_buttons: list[TeamButton]
+    main_stat_list: StatList
 
     SIDEBAR_WIDTH = 500
     SIDEBAR_HEIGHT = 900
@@ -298,6 +331,7 @@ class SideBar:
         self.sidebar = pygame.Rect(self.SIDEBAR_LEFT, self.SIDEBAR_TOP, self.SIDEBAR_WIDTH, self.SIDEBAR_HEIGHT)
         self.screen = screen
         self.team_buttons = []
+        self.main_stat_list = None
     
     def add_references(self, teambox: TeamBox, opponentbox: OpponentBox) -> None:
         """Maintain references to the other big objects."""
@@ -306,22 +340,28 @@ class SideBar:
 
     def build_sidebar(self) -> None:
         """Add all of the components of the sidebar in. Call after all references to other objects have been finalized."""
-        start_x = self.SIDEBAR_LEFT + 60
-        start_y = self.SIDEBAR_TOP + 10
+
+        start_x = self.SIDEBAR_LEFT + 75
+        start_y = self.SIDEBAR_TOP + 50
         index = 1
         for team in DisplayData().teams:
             self.team_buttons.append(TeamButton(self.screen, team, start_x, start_y))
             start_x += 120
             if index % 3 == 0:
                 start_y += 30
-                start_x = self.SIDEBAR_LEFT + 60
+                start_x = self.SIDEBAR_LEFT + 75
             index += 1
+        self.main_stat_list = StatList(self.screen, self.SIDEBAR_WIDTH - 10, 200, self.SIDEBAR_LEFT + 10, self.SIDEBAR_HEIGHT//2)
 
     def render(self) -> None:
         """
         Render the sidebar element on screen.
         """
+
         pygame.draw.rect(self.screen, pygame.Color("white"), self.sidebar)
+        team_text_surface = pygame.font.Font(None, size = 32).render("TEAMS", True, (0, 0, 0))
+        text_position = team_text_surface.get_rect(center=((self.SIDEBAR_LEFT + self.SIDEBAR_WIDTH//2), self.SIDEBAR_TOP + 25))
+        self.screen.blit(team_text_surface, text_position)
         for team_button in self.team_buttons:
             team_button.render()
 
