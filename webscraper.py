@@ -408,6 +408,44 @@ def gen_players_played_against() -> None:
             json.dump(data, f, indent=4)
 
 
+def test_run_and_save() -> None:
+    """
+    Runs a small test scrape for a few players and saves the results into separate JSON files.
+    This demonstrates functionality of scraping individual player data, teammates, and opponents.
+    """
+    players_test = ["jamesle01", "mahonbr01", "abdelal01"]
+    test_player_data = {}
+    test_teammates = {}
+    test_opponents = {}
+
+    for player_t in players_test:
+
+        player_stats = scrape_individual_player(player_t)
+        test_player_data[player_t] = player_stats
+
+        time.sleep(3.25)  # avoid ratelimit
+
+        teammates = players_played_with(player_t, "t")
+        test_teammates[player_t] = teammates
+
+        time.sleep(3.25)
+
+        opponents = players_played_with(player_t, "o")
+        test_opponents[player_t] = opponents
+
+        time.sleep(3.25)
+
+    # save results
+    with open("test_player_data.json", "w", encoding="utf-8") as f:
+        json.dump(test_player_data, f, indent=4)
+    with open("test_teammates.json", "w", encoding="utf-8") as f:
+        json.dump(test_teammates, f, indent=4)
+    with open("test_opponents.json", "w", encoding="utf-8") as f:
+        json.dump(test_opponents, f, indent=4)
+
+    print("Test run completed and data saved to JSON files.")
+
+
 if __name__ == "__main__":
 
     import python_ta
@@ -425,15 +463,7 @@ if __name__ == "__main__":
     if test_run == "Y":
         # Test run for a few players
         print("Starting test run")
-        players_test = ["jamesle01", "mahonbr01", "abdelal01"]
-        for player_t in players_test:
-            print(scrape_individual_player(player_t))
-            time.sleep(3.25)  # avoid ratelimit (1 request per 3s)
-            print(players_played_with(player_t, "t"))
-            time.sleep(3.25)
-            print(players_played_with(player_t, "o"))
-            time.sleep(3.25) 
-            print("")
+        test_run_and_save()
 
     # The below functions were run to generate the data
     # WARNING: running the webscraper will take approx ~6.25 hours with 5000+ web requests
