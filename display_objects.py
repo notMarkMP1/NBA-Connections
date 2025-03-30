@@ -173,7 +173,6 @@ class PlayerNode:
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
                 if collide:
-                    print(f"Left mouse button clicked at {event.pos}")
                     self.is_highlighted = True
                     return self
                 else:
@@ -302,7 +301,21 @@ class HeadToHeadMetrics:
         """"""
         pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
         if self.metrics != {}:
-            print("LOAD THE STATS!")
+            title_surface = pygame.font.Font(None, size=24).render(self.metrics["Title"], True, (0, 0, 0))
+            title_position = title_surface.get_rect(topleft=(self.LIST_LEFT + 10, self.LIST_TOP + 20))
+            self.screen.blit(title_surface, title_position)
+            current_x = self.LIST_LEFT + 10
+            current_y = self.LIST_TOP + 40
+            for metric in self.metrics:
+                if metric == "Title":
+                    continue
+                if isinstance(self.metrics[metric], float):
+                    text_surface = pygame.font.Font(None, size=20).render(f"{metric}: {DisplayData().float_to_percentage(self.metrics[metric])}", True, (0, 0, 0))
+                else:
+                    text_surface = pygame.font.Font(None, size=20).render(f"{metric}: {self.metrics[metric]}", True, (0, 0, 0))
+                text_position = text_surface.get_rect(topleft=(current_x, current_y))
+                current_y += 15
+                self.screen.blit(text_surface, text_position)
 
     def refresh(self) -> None:
         self.metrics = {}
@@ -314,7 +327,16 @@ class HeadToHeadMetrics:
         Check if both current_player and current_opponent are stored, and then load their metrics accordingly.
         """
         if self.current_player is not None and self.current_opponent is not None:
-            print("LOAD THAT BITCH!!!")
+            player_data = self.current_player.player_vertex
+            opponent_data = self.current_opponent.player_vertex
+            self.metrics["Title"] = f"{player_data.name}'s Stats Against {opponent_data.name}"
+
+            head_to_head_data = player_data.return_edge_info(opponent_data.name)["opponent_stats"]
+            self.metrics["Games Played"] = head_to_head_data["games"]
+            self.metrics["Winrate %"] = head_to_head_data["w_pct"]
+
+            deviation_data = player_data.compute_winrate_difference(opponent_data)
+            self.metrics["Deviation From Expected"] = deviation_data[1]
 
     def update_current_player(self, new_player: PlayerNode) -> None:
         self.current_player = new_player
