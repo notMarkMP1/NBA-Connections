@@ -1,7 +1,7 @@
 # Example file showing a basic pygame "game loop"
 import pygame
-from classes import Graph, Vertex, PlayerData
-from display_containers import PlayerNode, Camera, SideBar, DisplayData, TeamBox, OpponentBox
+from classes import Graph
+from display_containers import SideBar, TeamBox, OpponentBox
 
 
 class Visualization:

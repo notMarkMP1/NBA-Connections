@@ -400,10 +400,10 @@ class StatList:
             for stat in self.stats:
                 if stat == "Name":
                     continue
-                if stat not in ["Career Field Goal %", "Career 3PT Field Goal %"]:
-                    text_surface = pygame.font.Font(None, size=20).render(f"{stat}: {self.stats[stat]}", True, (0, 0, 0))
-                else:
+                if isinstance(self.stats[stat], float):
                     text_surface = pygame.font.Font(None, size=20).render(f"{stat}: {DisplayData().float_to_percentage(self.stats[stat])}", True, (0, 0, 0))
+                else:
+                    text_surface = pygame.font.Font(None, size=20).render(f"{stat}: {self.stats[stat]}", True, (0, 0, 0))
                 text_position = text_surface.get_rect(topleft=(current_x, current_y))
                 current_y += 25
                 self.screen.blit(text_surface, text_position)
