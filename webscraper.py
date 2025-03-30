@@ -319,6 +319,8 @@ def parse_player_data(player_data: list) -> dict:
     Preconditions:
         - player_data is a list of player data with length 15 and same format as per basketball-reference.com
     """
+    if len(player_data) != 15:
+        return None
     player_dict = {}
     for idx in range(len(player_data)):
         if player_data[idx] == "":
@@ -415,6 +417,23 @@ if __name__ == "__main__":
         'disable': ['R1705', 'E9998', 'E9999', 'E9996', 'W0718'],
         'debug': False
     })
+
+    print("Do you want to do a small test run of the webscraper? ")
+    print("No data will be saved, and this will take around 50 seconds.")
+    print("The extracted information will simply be printed to console.")
+    test_run = input("Do you want to do a small test run? (Y/N) ")
+    if test_run == "Y":
+        # Test run for a few players
+        print("Starting test run")
+        players_test = ["jamesle01", "mahonbr01", "abdelal01"]
+        for player_t in players_test:
+            print(scrape_individual_player(player_t))
+            time.sleep(3.25)  # avoid ratelimit (1 request per 3s)
+            print(players_played_with(player_t, "t"))
+            time.sleep(3.25)
+            print(players_played_with(player_t, "o"))
+            time.sleep(3.25) 
+            print("")
 
     # The below functions were run to generate the data
     # WARNING: running the webscraper will take approx ~6.25 hours with 5000+ web requests
