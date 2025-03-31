@@ -1,3 +1,5 @@
+"""
+Code that was used to clean our datasets and create active_players.json
 ### LIST OF TASKS ###
 # Number 1 - Get a list of all active players
 #          - Extract all the names and choose where they get saved (do we want to filter players.json?) -> logical
@@ -5,6 +7,7 @@
 #          - Test with a smaller size
 # Number 3 - Filter out players played against json
 # Number 4 - I need the intersection of players played against and with -> (teammates n opponents) n active
+"""
 
 import json
 
@@ -49,30 +52,3 @@ for player in active_players:
                 "teammate_stats": teammate_stats,
                 "opponent_stats": opponent_stats
             })
-
-
-# Commented out code - can reuse later if needed
-'''
-with open('active_players.json', 'w') as outfile:
-    json.dump(clean_dic, outfile, indent=4)
-'''
-'''
-with open('active_players.json', 'r') as openfile:
-    data = json.load(openfile)
-
-# print(len(data))
-'''
-'''
-for element in dic:
-    print(element + dic[element] + '\n')
-'''
-'''
-with open('active_players.json', 'w') as outfile:
-    json.dump(active_players, outfile)
-'''
-'''
-json_object = json
-
-with open('test.json', 'w') as outfile:
-    outfile.write(json_object)
-'''
