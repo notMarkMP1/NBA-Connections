@@ -269,7 +269,8 @@ class WinrateMetrics:
         """
         pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
         if self.metrics != {}:
-            title_text = f"Overall Winrate Statistics For {self.metrics["Name"]}"
+            name = self.metrics["Name"]
+            title_text = f"Overall Winrate Statistics For {name}"
             title_surface = pygame.font.Font(None, size=24).render(title_text, True, (0, 0, 0))
             title_position = title_surface.get_rect(topleft=(self.positional_data.left + 10,
                                                              self.positional_data.top + 20))
@@ -438,7 +439,8 @@ class StatList:
         """
         pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
         if self.stats != {}:
-            title_text = f"{self.stats["Name"]}"
+            name = self.stats["Name"]
+            title_text = f"{name}"
             title_surface = pygame.font.Font(None, size=24).render(title_text, True, (0, 0, 0))
             title_coordinates = (self.positional_data.left + (self.positional_data.width // 2),
                                  self.positional_data.top + 20)

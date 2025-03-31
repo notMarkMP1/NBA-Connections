@@ -222,3 +222,4 @@ class PlayerData:
         self.first_team = first_team
         self.last_team = last_team
         self.stats = stats
+        
