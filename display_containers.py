@@ -1,46 +1,45 @@
-from typing import Optional
-import pygame
+"""
+A module that contains the larger elements for the pygame visualization, e.g the sidebar and the graph
+display boxes.
+"""
+
 import random
 import math
+import pygame
+
 
 import pygame.camera
 from classes import Graph
-from display_objects import PlayerNode, Camera, DisplayData, TeamButton, StatList, WinrateMetrics, HeadToHeadMetrics
+from display_objects import (
+    PlayerNode,
+    PositionalData,
+    Camera,
+    DisplayData,
+    TeamButton,
+    StatList,
+    WinrateMetrics,
+    HeadToHeadMetrics,
+)
 
 
-class DisplayBox: 
+class DisplayBox:
     """
-    A class that provides methods for randomly generating points inside of a given bounds. 
+    A class that provides methods for randomly generating points inside of a given bounds.
     """
 
-    box = pygame.rect
-    BOX_WIDTH: int
-    BOX_HEIGHT: int
-    BOX_TOP: int
-    BOX_LEFT: int
-
+    box: pygame.rect
+    positional_data: PositionalData
     screen: pygame.display
     camera: Camera
 
-    def __init__(
-                self, 
-                screen: pygame.display, 
-                width: int, 
-                height: int, 
-                left: int,
-                top: int
-                )  -> None:
+    def __init__(self, screen: pygame.display, positional_data: PositionalData) -> None:
 
         self.screen = screen
         self.camera = Camera()
-
-        self.BOX_WIDTH = width
-        self.BOX_HEIGHT = height
-        self.BOX_LEFT = left
-        self.BOX_TOP = top
+        self.positional_data = positional_data
 
         # Create a pygame.Rect representing the box bounds
-        self.box = pygame.Rect(self.BOX_LEFT, self.BOX_TOP, self.BOX_WIDTH, self.BOX_HEIGHT)
+        self.box = pygame.Rect(self.positional_data.get_rect_positional_data())
 
     def check_interaction(self, events: list[pygame.event.Event]) -> None:
         """
@@ -48,55 +47,68 @@ class DisplayBox:
         """
         point = pygame.mouse.get_pos()
         collide = self.box.collidepoint(point)
-        if collide:
-            for event in events:
-                if event.type == pygame.MOUSEWHEEL:
-                    if event.y > 0:  # Scroll up (zoom in)
-                        self.camera.zoom_in()
-                    elif event.y < 0:  # Scroll down (zoom out)
-                        self.camera.zoom_out()
+        if not collide:
+            return None
+
+        for event in events:
+            if event.type == pygame.MOUSEWHEEL:
+                if event.y > 0:  # Scroll up (zoom in)
+                    self.camera.zoom_in()
+                elif event.y < 0:  # Scroll down (zoom out)
+                    self.camera.zoom_out()
 
     def render(self) -> None:
         """Render itself, and all of the elements inside of it."""
         pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
 
-    def is_valid_point(self, new_point, existing_points, min_distance) -> bool:
+    def is_valid_point(
+        self,
+        new_point: tuple[int, int],
+        existing_points: list[tuple[int, int]],
+        min_distance: int,
+    ) -> bool:
+        """
+        Given a series of points already generated, return if the new point is outside of the minimum distance
+        from all of the points.
+        """
         for point in existing_points:
             if math.dist(new_point, point) < min_distance:
                 return False
         return True
-    
+
     def get_points(self, num_of_players: int) -> tuple[list[tuple[int, int]], int]:
         """
-        Given the bounds of the box and a certain number of circles to generate, randomly generate the placement of all of the circles and 
-        the radius to set them to. If a random arrangement cannot be found within a reasonable amount of time,
+        Given the bounds of the box and a certain number of circles to generate,
+        randomly generate the placement of all of the circles and
+        the radius to set them to. If a random arrangement cannot be found within a
+        reasonable amount of time,
         return an ordered arrangement of the circles instead.
         """
         if num_of_players < 1:
             return [], 0
-        total_area = self.BOX_WIDTH * self.BOX_HEIGHT
+
+        total_area = self.positional_data.width * self.positional_data.height
         radius = min(int(math.sqrt((total_area // num_of_players) // math.pi)) // 4, 40)
         min_spacing = radius * 4
 
-        x_min, y_min = self.BOX_LEFT + min_spacing, self.BOX_TOP + min_spacing
-        x_max, y_max = self.BOX_LEFT + self.BOX_WIDTH - min_spacing, self.BOX_TOP + self.BOX_HEIGHT - min_spacing
+        x_min, y_min = (
+            self.positional_data.left + min_spacing,
+            self.positional_data.top + min_spacing,
+        )
+        x_max, y_max = (
+            self.positional_data.left + self.positional_data.width - min_spacing,
+            self.positional_data.top + self.positional_data.height - min_spacing,
+        )
 
+        default_points = self.generate_default_points(
+            num_of_players, (x_min, y_min, x_max), min_spacing
+        )
         randomized_points = []
-        default_points = []
-
-        current_x, current_y = x_min, y_min
-
-        for i in range(num_of_players):
-            default_points.append((current_x, current_y))
-            current_x += min_spacing * 2
-            if current_x >= x_max:
-                current_x = x_min
-                current_y += min_spacing
-
         count = 0
-        MAX_ITERATIONS = 50000
 
-        while len(randomized_points) < num_of_players and count < MAX_ITERATIONS:
+        while (
+            len(randomized_points) < num_of_players and count < 50000
+        ):  # reasonable runtime boudn on the while loop
             new_point = (random.randint(x_min, x_max), random.randint(y_min, y_max))
             if self.is_valid_point(new_point, randomized_points, min_spacing + 20):
                 randomized_points.append(new_point)
@@ -107,10 +119,30 @@ class DisplayBox:
         else:
             return default_points, radius
 
+    def generate_default_points(
+        self, num_of_players: int, bounds: tuple[int, int, int], min_spacing: int
+    ) -> list[tuple[int, int]]:
+        """
+        Given the bounds of a box, the number of points to generate inside of it, and the spacing between
+        the points, create an ordered sequence of points.
+        """
+        default_points = []
+        x_min, y_min, x_max = bounds
+        current_x, current_y = x_min, y_min
+
+        for i in range(num_of_players):
+            default_points.append((current_x, current_y))
+            current_x += min_spacing * 2
+            if current_x >= x_max:
+                current_x = x_min
+                current_y += min_spacing
+        return default_points
+
 
 class TeamBox(DisplayBox):
     """
-    An object that references the teambox object at the top left of the screen, where a teams current players are displayed.
+    An object that references the teambox object at the top left of the screen,
+    where a teams current players are displayed.
     Inherits from DisplayBox for all of the base methods.
     """
 
@@ -118,35 +150,35 @@ class TeamBox(DisplayBox):
     graph: Graph
 
     sidebar: "SideBar"
-    opponentbox : "OpponentBox"
+    opponentbox: "OpponentBox"
 
-    def __init__(self,
-                 BOX_WIDTH: int,
-                 BOX_HEIGHT: int,
-                 BOX_LEFT: int,
-                 BOX_TOP: int,
-                 screen: pygame.display, 
-                 graph: Graph) -> None:
+    def __init__(
+        self,
+        positional_data: PositionalData,
+        screen: pygame.display,
+        graph: Graph,
+    ) -> None:
 
-        super().__init__(screen, BOX_WIDTH, BOX_HEIGHT,  BOX_LEFT, BOX_TOP)
+        super().__init__(screen, positional_data)
 
         self.current_player_nodes = {}
         self.graph = graph
-    
+
     def add_references(self, sidebar: "SideBar", opponentbox: "OpponentBox") -> None:
         """Add references to the other major objects."""
         self.sidebar = sidebar
         self.opponentbox = opponentbox
-        
+
     def check_interaction(self, events: list[pygame.event.Event]) -> None:
         """
-        Handle mouse inputs and such...
+        Handle interaction with thie box. When an element inside of the box is clicked, update
+        the opponent box and the sidebar displays accordingly.
         """
         super().check_interaction(events)
         point = pygame.mouse.get_pos()
         collide = self.box.collidepoint(point)
         if collide:
-            for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box and sidebar
+            for node_name in self.current_player_nodes:
                 result = self.current_player_nodes[node_name].check_interaction(events)
                 if result:
                     self.opponentbox.generate_nodes(result)
@@ -155,7 +187,7 @@ class TeamBox(DisplayBox):
     def render(self) -> None:
         """Render itself, and all of the elements inside of it."""
         super().render()
-        #pygame.draw.rect(self.screen, (0, 0, 0), self.teambox, width=2, border_radius=2)
+        # pygame.draw.rect(self.screen, (0, 0, 0), self.teambox, width=2, border_radius=2)
         for node_name in self.current_player_nodes:
             player_node = self.current_player_nodes[node_name]
             player_node.scale_and_transform()
@@ -165,47 +197,50 @@ class TeamBox(DisplayBox):
 
         self.current_player_nodes.clear()
         players = []
-        
+
         for player_name in self.graph.vertices:
             player_vertex = self.graph.vertices[player_name]
             if team == player_vertex.expanded_data.last_team:
                 players.append((player_name, player_vertex))
 
         circle_points, radius = super().get_points(len(players))
-        index = 0   
+        index = 0
         for player in players:
-            self.current_player_nodes[player[0]] = PlayerNode(pygame.Vector2(circle_points[index][0], circle_points[index][1]),
-                                                                radius,
-                                                                self.camera,
-                                                                self.screen,
-                                                                player[1],
-                                                                player[1].expanded_data)
+            self.current_player_nodes[player[0]] = PlayerNode(
+                PositionalData(
+                    radius,
+                    radius,
+                    circle_points[index][0],
+                    circle_points[index][1],
+                ),
+                self.camera,
+                self.screen,
+                player[1],
+            )
             index += 1
 
-    
+
 class OpponentBox(DisplayBox):
     """
-    An object that references the opponent box object at the bottom left of the screen, where a players former teammmates are displayed.
+    An object that references the opponent box object at the bottom left of the screen,
+    where a players former teammmates are displayed.
     Inherits from the displaybox class for basic functionality.
     """
 
     current_player_nodes: dict[str, PlayerNode]
     graph: Graph
 
-
     reference_player: PlayerNode
     sidebar: "SideBar"
 
-    def __init__(self,
-                 BOX_WIDTH: int,
-                 BOX_HEIGHT: int,
-                 BOX_LEFT: int,
-                 BOX_TOP: int,
-                 screen: pygame.display, 
-                 graph: Graph) -> None:
-        
+    def __init__(
+        self,
+        positional_data: PositionalData,
+        screen: pygame.display,
+        graph: Graph,
+    ) -> None:
 
-        super().__init__(screen, BOX_WIDTH, BOX_HEIGHT,  BOX_LEFT, BOX_TOP)
+        super().__init__(screen, positional_data)
 
         self.current_player_nodes = {}
         self.graph = graph
@@ -219,7 +254,11 @@ class OpponentBox(DisplayBox):
         point = pygame.mouse.get_pos()
         collide = self.box.collidepoint(point)
         if collide:
-            for node_name in self.current_player_nodes: # handle when a node gets clicked on, update opponent box and sidebar
+            for (
+                node_name
+            ) in (
+                self.current_player_nodes
+            ):  # handle when a node gets clicked on, update opponent box and sidebar
                 result = self.current_player_nodes[node_name].check_interaction(events)
                 if result:
                     self.sidebar.update_opponent_player(result)
@@ -237,7 +276,6 @@ class OpponentBox(DisplayBox):
             player_node.scale_and_transform()
             player_node.render()
 
-
     def add_references(self, sidebar: "SideBar") -> None:
         """Add references to the other major objects."""
         self.sidebar = sidebar
@@ -247,7 +285,7 @@ class OpponentBox(DisplayBox):
         Refresh the display to show nothing. Called when the user swaps to a new team.
         """
         self.current_player_nodes.clear()
-        self.reference_player = None 
+        self.reference_player = None
 
     def generate_nodes(self, player: PlayerNode) -> None:
         """
@@ -261,16 +299,22 @@ class OpponentBox(DisplayBox):
             opponents_to_generate.append(edge.points_towards)
 
         circle_points, radius = super().get_points(len(opponents_to_generate))
-        index = 0   
+        index = 0
 
         for opponent in opponents_to_generate:
-            self.current_player_nodes[opponent.name] = PlayerNode(pygame.Vector2(circle_points[index][0], circle_points[index][1]),
-                                                                radius,
-                                                                self.camera,
-                                                                self.screen,
-                                                                opponent,
-                                                                opponent.expanded_data)
+            self.current_player_nodes[opponent.name] = PlayerNode(
+                PositionalData(
+                    radius,
+                    radius,
+                    circle_points[index][0],
+                    circle_points[index][1],
+                ),
+                self.camera,
+                self.screen,
+                opponent,
+            )
             index += 1
+
 
 class SideBar:
     """
@@ -278,6 +322,7 @@ class SideBar:
     Allows searching for player names to view their profile in more depth and highlight them on screen.
     """
 
+    positional_data: PositionalData
     sidebar: pygame.rect
     screen: pygame.display
 
@@ -285,86 +330,105 @@ class SideBar:
     opponentbox: OpponentBox
 
     team_buttons: list[TeamButton]
-    main_stat_list: StatList
-    opponent_stat_list: StatList
-    overall_winrate_metrics: WinrateMetrics
-    head_to_head_metrics: HeadToHeadMetrics
+    stat_displays: list[StatList, WinrateMetrics, HeadToHeadMetrics]
 
-    SIDEBAR_WIDTH = 500
-    SIDEBAR_HEIGHT = 900
-    SIDEBAR_TOP = None
-    SIDEBAR_LEFT = None
-
-    def __init__(self, SCREEN_WIDTH: int, SCREEN_HEIGHT: int, screen: pygame.display) -> None:
-
-        self.SIDEBAR_LEFT = SCREEN_WIDTH - self.SIDEBAR_WIDTH
-        self.SIDEBAR_TOP = 0
-
-        self.sidebar = pygame.Rect(self.SIDEBAR_LEFT, self.SIDEBAR_TOP, self.SIDEBAR_WIDTH, self.SIDEBAR_HEIGHT)
+    def __init__(self, positional_data: PositionalData, screen: pygame.display) -> None:
+        self.positional_data = positional_data
+        self.sidebar = pygame.Rect(self.positional_data.get_rect_positional_data())
         self.screen = screen
         self.team_buttons = []
-        self.main_stat_list = None
-        self.opponent_stat_list = None
-        self.overall_winrate_metrics = None
-        self.exact_winrate_metrics = None
-    
+        self.stat_displays = []
+
     def add_references(self, teambox: TeamBox, opponentbox: OpponentBox) -> None:
         """Maintain references to the other big objects."""
         self.teambox = teambox
         self.opponentbox = opponentbox
 
     def build_sidebar(self) -> None:
-        """Add all of the components of the sidebar in. Call after all references to other objects have been finalized."""
-
-        start_x = self.SIDEBAR_LEFT + 75
-        start_y = self.SIDEBAR_TOP + 50
+        """
+        Add all of the components of the sidebar in. Call after all references to
+        other objects have been finalized.
+        """
+        start_x = self.positional_data.left + 75
+        start_y = self.positional_data.top + 50
         index = 1
         for team in DisplayData().teams:
             self.team_buttons.append(TeamButton(self.screen, team, start_x, start_y))
             start_x += 120
             if index % 3 == 0:
                 start_y += 30
-                start_x = self.SIDEBAR_LEFT + 75
+                start_x = self.positional_data.left + 75
             index += 1
-            self.main_stat_list = StatList(self.screen, 
-                                        (self.SIDEBAR_WIDTH - 20) // 2, 
-                                        200, 
-                                        self.SIDEBAR_LEFT + 10, 
-                                        self.SIDEBAR_HEIGHT // 2
-                                        )
-            self.opponent_stat_list = StatList(self.screen, 
-                                            (self.SIDEBAR_WIDTH - 20) // 2, 
-                                            200, 
-                                            self.SIDEBAR_LEFT + (self.SIDEBAR_WIDTH - 20) // 2 + 15, 
-                                            self.SIDEBAR_HEIGHT // 2
-                                            )
-            self.overall_winrate_metrics = WinrateMetrics(self.screen, 
-                                                        self.SIDEBAR_WIDTH - 20, 
-                                                        100, 
-                                                        self.SIDEBAR_LEFT + 10, 
-                                                        self.SIDEBAR_HEIGHT // 2 + 220
-                                                        )
-            self.head_to_head_metrics = HeadToHeadMetrics(self.screen, 
-                                                        self.SIDEBAR_WIDTH - 20, 
-                                                        100, 
-                                                        self.SIDEBAR_LEFT + 10, 
-                                                        self.SIDEBAR_HEIGHT // 2 + 330
-                                                        )
+        # main stat display
+        self.stat_displays.append(
+            StatList(
+                self.screen,
+                PositionalData(
+                    (self.positional_data.width - 20) // 2,
+                    200,
+                    self.positional_data.left + 10,
+                    self.positional_data.height // 2,
+                ),
+            )
+        )
+        # opponent stat display
+        self.stat_displays.append(
+            StatList(
+                self.screen,
+                PositionalData(
+                    (self.positional_data.width - 20) // 2,
+                    200,
+                    self.positional_data.left
+                    + (self.positional_data.width - 20) // 2
+                    + 15,
+                    self.positional_data.height // 2,
+                ),
+            )
+        )
+        # overall winrate stat display
+        self.stat_displays.append(
+            WinrateMetrics(
+                self.screen,
+                PositionalData(
+                    self.positional_data.width - 20,
+                    100,
+                    self.positional_data.left + 10,
+                    self.positional_data.height // 2 + 220,
+                ),
+            )
+        )
+        # head to head winrate display
+        self.stat_displays.append(
+            HeadToHeadMetrics(
+                self.screen,
+                PositionalData(
+                    self.positional_data.width - 20,
+                    100,
+                    self.positional_data.left + 10,
+                    self.positional_data.height // 2 + 330,
+                ),
+            )
+        )
+
     def render(self) -> None:
         """
         Render the sidebar element on screen.
         """
         pygame.draw.rect(self.screen, pygame.Color("white"), self.sidebar)
-        team_text_surface = pygame.font.Font(None, size = 32).render("TEAMS", True, (0, 0, 0))
-        text_position = team_text_surface.get_rect(center=((self.SIDEBAR_LEFT + self.SIDEBAR_WIDTH//2), self.SIDEBAR_TOP + 25))
+        team_text_surface = pygame.font.Font(None, size=32).render(
+            "TEAMS", True, (0, 0, 0)
+        )
+        text_position = team_text_surface.get_rect(
+            center=(
+                (self.positional_data.left + self.positional_data.width // 2),
+                self.positional_data.top + 25,
+            )
+        )
         self.screen.blit(team_text_surface, text_position)
         for team_button in self.team_buttons:
             team_button.render()
-    
-        self.main_stat_list.render()
-        self.opponent_stat_list.render()
-        self.overall_winrate_metrics.render()
-        self.head_to_head_metrics.render()
+        for stat_display in self.stat_displays:
+            stat_display.render()
 
     def check_interaction(self, events: list[pygame.event.Event]) -> None:
         """
@@ -375,18 +439,30 @@ class SideBar:
             if result:
                 self.teambox.generate_nodes(result)
                 self.opponentbox.refresh()
-                self.main_stat_list.refresh()
-                self.opponent_stat_list.refresh()
-                self.overall_winrate_metrics.refresh()
-                self.head_to_head_metrics.refresh()
-
+                for stat_display in self.stat_displays:
+                    stat_display.refresh()
 
     def update_current_player(self, player: PlayerNode) -> None:
-        self.main_stat_list.update_current_player(player)
-        self.overall_winrate_metrics.update_current_player(player)
-        self.head_to_head_metrics.update_current_player(player)
+        """
+        When a new player is clicked, update the sidebar displays accordingly with their data.
+        """
+        # only indexes 0, 2, 3 should be updated
+        self.stat_displays[0].update_current_player(player)
+        self.stat_displays[2].update_current_player(player)
+        self.stat_displays[3].update_current_player(player)
 
     def update_opponent_player(self, player: PlayerNode) -> None:
-        self.opponent_stat_list.update_current_player(player)
-        self.head_to_head_metrics.update_current_opponent(player)
+        """
+        When a new opponent is clicked, update the sidebar displays accordingly with their data.
+        """
+        # only indexes 1, 3 should be updated
+        self.stat_displays[1].update_current_player(player)
+        self.stat_displays[3].update_current_opponent(player)
 
+
+if __name__ == "__main__":
+    import python_ta
+
+    python_ta.check_all(
+        config={"max-line-length": 120, "disable": ["E9999", "E1101"], "debug": False}
+    )

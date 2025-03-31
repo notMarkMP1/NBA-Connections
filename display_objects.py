@@ -1,6 +1,32 @@
+"""
+A module containing the pygame elements that support the graph visualization. Contains the player nodes,
+stat visualization modules, and supporting classes.
+"""
 from typing import Optional
 import pygame
-from classes import Vertex, PlayerData
+from classes import Vertex
+
+
+class PositionalData:
+    """
+    A data class that contains the necessary information of an objects position and size on the window.
+    """
+    width: int
+    height: int
+    left: int
+    top: int
+
+    def __init__(self, width: int, height: int, left: int, top: int) -> None:
+        self.width = width
+        self.height = height
+        self.left = left
+        self.top = top
+
+    def get_rect_positional_data(self) -> tuple[int, int, int, int]:
+        """
+        Return the positional data in a way formatted for pygame.rect.
+        """
+        return (self.left, self.top, self.width, self.height)
 
 
 class DisplayData:
@@ -40,13 +66,14 @@ class DisplayData:
         "PHO": (229, 95, 32),   # Phoenix Suns - Orange
         "POR": (224, 58, 62),   # Portland Trail Blazers - Red
         "SAC": (91, 43, 130),   # Sacramento Kings - Purple
-        "SAS": (196, 206, 211), # San Antonio Spurs - Silver
+        "SAS": (196, 206, 211),  # San Antonio Spurs - Silver
         "TOR": (206, 17, 65),   # Toronto Raptors - Red
         "UTA": (0, 43, 92),     # Utah Jazz - Navy Blue
         "WAS": (0, 43, 92)      # Washington Wizards - Navy Blue
     }
 
     def get_team_colour(self, team_name: str) -> tuple[int, int, int]:
+        """Given a team code, return their team color."""
         if team_name in self.team_colours:
             return self.team_colours[team_name]
         else:
@@ -54,15 +81,16 @@ class DisplayData:
 
     def float_to_percentage(self, value: str) -> str:
         """Converts a float string to a percentage string with 2 decimal places."""
-        return f"{(float(value)*100):.1f}%"
+        return f"{(float(value) * 100):.1f}%"
 
 
 class Camera:
-    # TODO: MAKE MAXIMUM + MINIMUM ZOOM
-    camera: pygame.rect
+    """
+    A class that supports zooming in and out functionality of the player nodes.
+    """
     zoom: float
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.zoom = float(1.0)
 
     def zoom_in(self) -> None:
@@ -83,51 +111,42 @@ class Camera:
             self.zoom = 0.33
         return
 
+
 class PlayerNode:
     """
     a class that represents a player node on the graph. Can be interacted with to reveal more data about the player and
     highlight all of its connections. Maintains a reference to the camera and screen to adjust its rendering.
     """
     player_vertex: Vertex
-    player_data: PlayerData
-
     is_highlighted: bool
 
     camera: Camera
     screen: pygame.display
 
-    node_size: float
-    font_size: int
+    positional_data: PositionalData
     object: pygame.rect
-    default_color: tuple[int, int, int]
     color: tuple[int, int, int]
 
     def __init__(self,
-                 position: pygame.Vector2,
-                 node_size: int,
+                 positional_data: PositionalData,
                  camera: Camera,
                  screen: pygame.display,
-                 player_vertex: Vertex,
-                 player_data: PlayerData):
-
-        self.node_size = node_size
-        self.font_size = 16
+                 player_vertex: Vertex) -> None:
+        self.positional_data = positional_data
         self.is_highlighted = False
-        self.object = pygame.Rect(int(position.x), int(position.y), int(self.node_size), int(self.node_size))
+        self.object = pygame.Rect(positional_data.get_rect_positional_data())
 
         self.camera = camera
         self.screen = screen
         self.player_vertex = player_vertex
-        self.player_data = player_data
-        self.default_color = DisplayData().team_colours[player_data.last_team]
-        self.color = self.default_color
+        self.color = DisplayData().team_colours[self.player_vertex.expanded_data.last_team]
 
     def scale_and_transform(self) -> None:
         """
         Scale and transform the object to place it where it should be according to the current camera position and zoom.
         """
-        self.object.width = self.node_size * self.camera.zoom
-        self.object.height = self.node_size * self.camera.zoom
+        self.object.width = self.positional_data.width * self.camera.zoom
+        self.object.height = self.positional_data.width * self.camera.zoom
 
     def render(self) -> None:
         """
@@ -143,8 +162,10 @@ class PlayerNode:
             text_color = (0, 0, 0)
         else:
             text_color = (255, 255, 255)
-
-        text_surface = pygame.font.Font(None, size=int(self.font_size*self.camera.zoom)).render(f"{self.player_vertex.name}", True, text_color)
+        default_font_size = 16
+        dynamic_text_size = int(default_font_size * self.camera.zoom)
+        text_to_render = f"{self.player_vertex.name}"
+        text_surface = pygame.font.Font(None, size=dynamic_text_size).render(text_to_render, True, text_color)
         text_position = text_surface.get_rect(center=self.object.center)
         self.screen.blit(text_surface, text_position)
 
@@ -159,16 +180,12 @@ class PlayerNode:
 
     def check_interaction(self, events: list[pygame.event.Event]) -> Optional["PlayerNode"]:
         """
-        Handle when the player interacts with this object. Highlight if the player mouses over, and depending if it was clicked or not,
+        Handle when the player interacts with this object. Highlight if the player mouses over,
+        and depending if it was clicked or not,
         return itself as an object to the entity it belongs to.
         """
         point = pygame.mouse.get_pos()
         collide = self.object.collidepoint(point)
-
-        if collide:
-            self.color = (200, 200, 200)
-        else:
-            self.color = self.default_color
 
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
@@ -178,53 +195,59 @@ class PlayerNode:
                 else:
                     self.is_highlighted = False
                     return None
+        return None
+
 
 class TeamButton:
     """
     An instance representing a button that changes the team displayed on the visualization tool.
     """
 
-    BUTTON_WIDTH = 100
-    BUTTON_HEIGHT = 20
-    BUTTON_LEFT: int = None
-    BUTTON_TOP: int = None
+    button_width: int = 100
+    button_height: int = 20
+    button_left: int = None
+    button_top: int = None
     button: pygame.rect
     team: str
 
-    def __init__(self, screen: pygame.display, team: str, position_x: int, position_y: int) -> None:
+    screen: pygame.display
 
+    def __init__(self, screen: pygame.display, team: str, position_x: int, position_y: int) -> None:
         self.screen = screen
         self.team = team
-        self.BUTTON_LEFT = position_x
-        self.BUTTON_TOP = position_y
-        self.button = pygame.Rect(self.BUTTON_LEFT, self.BUTTON_TOP, self.BUTTON_WIDTH, self.BUTTON_HEIGHT)
+        self.button_left = position_x
+        self.button_top = position_y
+        self.button = pygame.Rect(self.button_left, self.button_top, self.button_width, self.button_height)
 
     def render(self) -> None:
-        """Display this element."""
+        """
+        Display this element on screen.
+        """
         pygame.draw.rect(self.screen, DisplayData().get_team_colour(self.team), self.button, border_radius=5)
         text_surface = pygame.font.Font(None, size=22).render(f"{self.team}", True, (255, 255, 255))
         text_position = text_surface.get_rect(center=self.button.center)
         self.screen.blit(text_surface, text_position)
 
     def check_interaction(self, events: list[pygame.event.Event]) -> str:
-        """Handle interaction with this element."""
+        """
+        Handle interaction with this element. If it is clicked on, return
+        the team name as a string.
+        """
         point = pygame.mouse.get_pos()
         collide = self.button.collidepoint(point)
         if collide:
             for event in events:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
                     return self.team
+        return ""
+
 
 class WinrateMetrics:
     """
-    A class that represents the winrate display of each player. Gives their winrate % against all opponents, against former teammates,
-    and their differences.
+    A class that represents the winrate display of each player. Gives their winrate %
+    against all opponents, against former teammates, and their differences.
     """
-
-    LIST_WIDTH: int
-    LIST_HEIGHT: int
-    LIST_LEFT: int
-    LIST_TOP: int
+    positional_data: PositionalData
     box: pygame.rect
 
     screen: pygame.display
@@ -232,33 +255,42 @@ class WinrateMetrics:
     current_player: PlayerNode | None
     metrics: dict[str, str]
 
-    def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
+    def __init__(self, screen: pygame.display, positional_data: PositionalData) -> None:
         self.screen = screen
-        self.LIST_WIDTH = width
-        self.LIST_HEIGHT = height
-        self.LIST_LEFT = position_x
-        self.LIST_TOP = position_y
-        self.box = pygame.Rect(self.LIST_LEFT, self.LIST_TOP, self.LIST_WIDTH, self.LIST_HEIGHT)
+        self.positional_data = positional_data
+        self.box = pygame.Rect(self.positional_data.get_rect_positional_data())
         self.metrics = {}
         self.current_player = None
 
     def render(self) -> None:
+        """
+        Display this element on screen. If no player is currently loaded, display nothing;
+        otherwise, display their basic stats with regards to winrate.
+        """
         pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
         if self.metrics != {}:
-            title_surface = pygame.font.Font(None, size=24).render(f"Overall Winrate Statistics For {self.metrics["Name"]}", True, (0, 0, 0))
-            title_position = title_surface.get_rect(topleft=(self.LIST_LEFT + 10, self.LIST_TOP + 20))
+            title_text = f"Overall Winrate Statistics For {self.metrics["Name"]}"
+            title_surface = pygame.font.Font(None, size=24).render(title_text, True, (0, 0, 0))
+            title_position = title_surface.get_rect(topleft=(self.positional_data.left + 10,
+                                                             self.positional_data.top + 20))
             self.screen.blit(title_surface, title_position)
-            current_x = self.LIST_LEFT + 10
-            current_y = self.LIST_TOP + 40
+            current_x = self.positional_data.left + 10
+            current_y = self.positional_data.top + 40
             for metric in self.metrics:
                 if metric == "Name":
                     continue
-                text_surface = pygame.font.Font(None, size=20).render(f"{metric}: {DisplayData().float_to_percentage(self.metrics[metric])}", True, (0, 0, 0))
+                text_to_display = f"{metric}: {DisplayData().float_to_percentage(self.metrics[metric])}"
+                text_surface = pygame.font.Font(None, size=20).render(text_to_display, True, (0, 0, 0))
                 text_position = text_surface.get_rect(topleft=(current_x, current_y))
                 current_y += 15
                 self.screen.blit(text_surface, text_position)
+                self.screen.blit(text_surface, text_position)
 
     def update_current_player(self, new_player: PlayerNode) -> None:
+        """
+        Update the current player stored inside of the display, and update the display fields
+        accordingly.
+        """
         self.current_player = new_player
         player_vertex = self.current_player.player_vertex
         self.metrics["Name"] = player_vertex.name
@@ -267,17 +299,18 @@ class WinrateMetrics:
         self.metrics["Absolute Winrate Difference"] = player_vertex.check_winrate_correlation()
 
     def refresh(self) -> None:
+        """
+        Reset this instance to contain no reference to players.
+        """
         self.metrics = {}
         self.current_player = None
+
 
 class HeadToHeadMetrics:
     """
     A class that represents the head to head metrics of the two players being currently compared.
     """
-    LIST_WIDTH: int
-    LIST_HEIGHT: int
-    LIST_LEFT: int
-    LIST_TOP: int
+    positional_data: PositionalData
     box: pygame.rect
 
     screen: pygame.display
@@ -286,38 +319,44 @@ class HeadToHeadMetrics:
     current_opponent: PlayerNode | None
     metrics: dict[str, str]
 
-    def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
+    def __init__(self, screen: pygame.display, positional_data: PositionalData) -> None:
         self.screen = screen
-        self.LIST_WIDTH = width
-        self.LIST_HEIGHT = height
-        self.LIST_LEFT = position_x
-        self.LIST_TOP = position_y
-        self.box = pygame.Rect(self.LIST_LEFT, self.LIST_TOP, self.LIST_WIDTH, self.LIST_HEIGHT)
+        self.positional_data = positional_data
+        self.box = pygame.Rect(self.positional_data.get_rect_positional_data())
         self.metrics = {}
         self.current_player = None
         self.current_opponent = None
 
     def render(self) -> None:
-        """"""
+        """
+        Display this element on screen. If no metrics are loaded, do not display anything; otherwise
+        list out the metrics stored.
+        """
         pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
         if self.metrics != {}:
             title_surface = pygame.font.Font(None, size=24).render(self.metrics["Title"], True, (0, 0, 0))
-            title_position = title_surface.get_rect(topleft=(self.LIST_LEFT + 10, self.LIST_TOP + 20))
+            title_position = title_surface.get_rect(topleft=(self.positional_data.left + 10,
+                                                             self.positional_data.top + 20))
             self.screen.blit(title_surface, title_position)
-            current_x = self.LIST_LEFT + 10
-            current_y = self.LIST_TOP + 40
+            current_x = self.positional_data.left + 10
+            current_y = self.positional_data.top + 40
             for metric in self.metrics:
                 if metric == "Title":
                     continue
                 if isinstance(self.metrics[metric], float):
-                    text_surface = pygame.font.Font(None, size=20).render(f"{metric}: {DisplayData().float_to_percentage(self.metrics[metric])}", True, (0, 0, 0))
+                    text_to_display = f"{metric}: {DisplayData().float_to_percentage(self.metrics[metric])}"
+                    text_surface = pygame.font.Font(None, size=20).render(text_to_display, True, (0, 0, 0))
                 else:
-                    text_surface = pygame.font.Font(None, size=20).render(f"{metric}: {self.metrics[metric]}", True, (0, 0, 0))
+                    text_to_display = f"{metric}: {self.metrics[metric]}"
+                    text_surface = pygame.font.Font(None, size=20).render(text_to_display, True, (0, 0, 0))
                 text_position = text_surface.get_rect(topleft=(current_x, current_y))
                 current_y += 15
                 self.screen.blit(text_surface, text_position)
 
     def refresh(self) -> None:
+        """
+        Reset this instance to contain no reference to players.
+        """
         self.metrics = {}
         self.current_player = None
         self.current_opponent = None
@@ -339,21 +378,26 @@ class HeadToHeadMetrics:
             self.metrics["Deviation From Expected"] = deviation_data[1]
 
     def update_current_player(self, new_player: PlayerNode) -> None:
+        """
+        update the player currently stored in this instance.
+        """
         self.current_player = new_player
 
     def update_current_opponent(self, new_player: PlayerNode) -> None:
+        """
+        update the opponent currently stored in this instance. Given that opponents can only be loaded
+        after a player is loaded, check if winrate stats can be gotten for both of them.
+        """
         self.current_opponent = new_player
         self.update_display()
+
 
 class StatList:
     """
     A class that represents the stats display of each player. Gives their name, basic stats, and more.
     """
 
-    LIST_WIDTH: int
-    LIST_HEIGHT: int
-    LIST_LEFT: int
-    LIST_TOP: int
+    positional_data: PositionalData
     box: pygame.rect
 
     screen: pygame.display
@@ -361,21 +405,20 @@ class StatList:
     current_player: PlayerNode | None
     stats: dict[str, str]
 
-    def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
+    def __init__(self, screen: pygame.display, positional_data: PositionalData) -> None:
         self.screen = screen
-        self.LIST_WIDTH = width
-        self.LIST_HEIGHT = height
-        self.LIST_LEFT = position_x
-        self.LIST_TOP = position_y
-        self.box = pygame.Rect(self.LIST_LEFT, self.LIST_TOP, self.LIST_WIDTH, self.LIST_HEIGHT)
+        self.positional_data = positional_data
+        self.box = pygame.Rect(self.positional_data.get_rect_positional_data())
         self.stats = {}
         self.current_player = None
 
     def update_current_player(self, new_player: PlayerNode) -> None:
+        """
+        Update the player currently being displayed, and all of their basic stats to be displayed.
+        """
         self.current_player = new_player
         player_data = self.current_player.player_vertex.expanded_data
         self.stats = {}
-        #TODO: TRY CATCH STATEMENTS FOR THIS BULLSHIT???
         self.stats["Name"] = self.current_player.player_vertex.name
         self.stats["First Season"] = player_data.seasons[0]
         self.stats["First Team"] = player_data.first_team
@@ -384,30 +427,51 @@ class StatList:
         try:
             self.stats["Career Field Goal %"] = str(player_data.stats["fgp"])
             self.stats["Career 3PT Field Goal %"] = str(player_data.stats["fg3p"])
-        except Exception as e:
+        except KeyError:
+            # handle error case where fgp and fg3p were not processed correctly
             self.stats["Career Field Goal %"] = "N/A"
             self.stats["Career 3PT Field Goal %"] = "N/A"
 
     def render(self) -> None:
+        """
+        Render the stored players current stats on screen. If no player is stored, draw nothing.
+        """
         pygame.draw.rect(self.screen, (0, 0, 0), self.box, width=2, border_radius=2)
         if self.stats != {}:
-            title_surface = pygame.font.Font(None, size=24).render(f"{self.stats["Name"]}", True, (0, 0, 0))
-            title_position = title_surface.get_rect(center=(self.LIST_LEFT + (self.LIST_WIDTH//2), self.LIST_TOP + 20))
+            title_text = f"{self.stats["Name"]}"
+            title_surface = pygame.font.Font(None, size=24).render(title_text, True, (0, 0, 0))
+            title_coordinates = (self.positional_data.left + (self.positional_data.width // 2),
+                                 self.positional_data.top + 20)
+            title_position = title_surface.get_rect(center=title_coordinates)
             self.screen.blit(title_surface, title_position)
-            #TODO: RENDER THE REST OF THE STATS
-            current_x = self.LIST_LEFT + 10
-            current_y = self.LIST_TOP + 50
+            current_x = self.positional_data.left + 10
+            current_y = self.positional_data.top + 50
             for stat in self.stats:
                 if stat == "Name":
                     continue
                 if isinstance(self.stats[stat], float):
-                    text_surface = pygame.font.Font(None, size=20).render(f"{stat}: {DisplayData().float_to_percentage(self.stats[stat])}", True, (0, 0, 0))
+                    text_to_display = f"{stat}: {DisplayData().float_to_percentage(self.stats[stat])}"
+                    text_surface = pygame.font.Font(None, size=20).render(text_to_display, True, (0, 0, 0))
                 else:
-                    text_surface = pygame.font.Font(None, size=20).render(f"{stat}: {self.stats[stat]}", True, (0, 0, 0))
+                    text_to_display = f"{stat}: {self.stats[stat]}"
+                    text_surface = pygame.font.Font(None, size=20).render(text_to_display, True, (0, 0, 0))
                 text_position = text_surface.get_rect(topleft=(current_x, current_y))
                 current_y += 25
                 self.screen.blit(text_surface, text_position)
 
     def refresh(self) -> None:
+        """
+        Reset this instance to contain no reference to any player.
+        """
         self.stats = {}
         self.current_player = None
+
+
+if __name__ == "__main__":
+    import python_ta
+
+    python_ta.check_all(config={
+        'max-line-length': 120,
+        'disable': ["E9999", "E1101"],
+        'debug': False
+    })

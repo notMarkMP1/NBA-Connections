@@ -487,11 +487,4 @@ if __name__ == "__main__":
         generate_all_player_stats()
 
     print("Done.")
-    # else:
-    #     # gen_all_missing_player_stats()
-    #     # print(len(players_played_with("jamesle01", "t")))
-    #     # print(len(players_played_with("jamesle01", "o")))
-    #     # scrape_individual_player("abdelal01")
-    #     # scrape_individual_player("mahonbr01")
     print(scrape_individual_player("jamesle01"))
-    #     ...
