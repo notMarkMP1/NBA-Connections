@@ -51,7 +51,7 @@ class DisplayData:
             return self.team_colours[team_name]
         else:
             return (255, 255, 255)
-    
+
     def float_to_percentage(self, value: str) -> str:
         """Converts a float string to a percentage string with 2 decimal places."""
         return f"{(float(value)*100):.1f}%"
@@ -69,7 +69,7 @@ class Camera:
         """
         Increase the camera zoom by 5%. If the zoom is greater than 3x, do not allow it to increase further.
         """
-        self.zoom *= 1.05 
+        self.zoom *= 1.05
         if self.zoom > 2:
             self.zoom = 2
         return
@@ -82,13 +82,13 @@ class Camera:
         if self.zoom < 0.33:
             self.zoom = 0.33
         return
-    
+
 class PlayerNode:
     """
     a class that represents a player node on the graph. Can be interacted with to reveal more data about the player and
     highlight all of its connections. Maintains a reference to the camera and screen to adjust its rendering.
     """
-    player_vertex: Vertex 
+    player_vertex: Vertex
     player_data: PlayerData
 
     is_highlighted: bool
@@ -109,12 +109,12 @@ class PlayerNode:
                  screen: pygame.display,
                  player_vertex: Vertex,
                  player_data: PlayerData):
-        
+
         self.node_size = node_size
         self.font_size = 16
         self.is_highlighted = False
         self.object = pygame.Rect(int(position.x), int(position.y), int(self.node_size), int(self.node_size))
-        
+
         self.camera = camera
         self.screen = screen
         self.player_vertex = player_vertex
@@ -138,7 +138,7 @@ class PlayerNode:
             pygame.draw.circle(self.screen, self.color, self.object.center, self.object.width)
         else:
             pygame.draw.circle(self.screen, self.color, self.object.center, self.object.width)
-        
+
         if self.color[0] + self.color[1] + self.color[2] > 200:
             text_color = (0, 0, 0)
         else:
@@ -150,7 +150,7 @@ class PlayerNode:
 
     def render_connection(self, node: "PlayerNode") -> None:
         """
-        Draw a line between this node and another, assumign that this node is the ENDPOINT. 
+        Draw a line between this node and another, assumign that this node is the ENDPOINT.
         """
         current_position = self.object.center
         other_position = node.object.center
@@ -164,7 +164,7 @@ class PlayerNode:
         """
         point = pygame.mouse.get_pos()
         collide = self.object.collidepoint(point)
-    
+
         if collide:
             self.color = (200, 200, 200)
         else:
@@ -178,10 +178,10 @@ class PlayerNode:
                 else:
                     self.is_highlighted = False
                     return None
-                
+
 class TeamButton:
     """
-    An instance representing a button that changes the team displayed on the visualization tool. 
+    An instance representing a button that changes the team displayed on the visualization tool.
     """
 
     BUTTON_WIDTH = 100
@@ -192,7 +192,7 @@ class TeamButton:
     team: str
 
     def __init__(self, screen: pygame.display, team: str, position_x: int, position_y: int) -> None:
-        
+
         self.screen = screen
         self.team = team
         self.BUTTON_LEFT = position_x
@@ -214,7 +214,7 @@ class TeamButton:
             for event in events:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
                     return self.team
-                
+
 class WinrateMetrics:
     """
     A class that represents the winrate display of each player. Gives their winrate % against all opponents, against former teammates,
@@ -231,7 +231,7 @@ class WinrateMetrics:
 
     current_player: PlayerNode | None
     metrics: dict[str, str]
-    
+
     def __init__(self, screen: pygame.display, width: int, height: int, position_x: int, position_y: int) -> None:
         self.screen = screen
         self.LIST_WIDTH = width
@@ -257,15 +257,16 @@ class WinrateMetrics:
                 text_position = text_surface.get_rect(topleft=(current_x, current_y))
                 current_y += 15
                 self.screen.blit(text_surface, text_position)
-    
+
     def update_current_player(self, new_player: PlayerNode) -> None:
         self.current_player = new_player
         player_vertex = self.current_player.player_vertex
         self.metrics["Name"] = player_vertex.name
-        self.metrics["Winrate % With Former Teammates"] = player_vertex.calculate_average_teammate_winrate()
-        self.metrics["Winrate % Against Former Teammates"] = player_vertex.calculate_average_opponent_winrate()
+        self.metrics["Winrate % With Former Teammates"] = player_vertex.calc_avg_teammate_winrate()
+        self.metrics["Winrate % Against Former Teammates"] = player_vertex.calc_avg_opponent_winrate()
+        self.metrics["Winrate % Against All Opponents"] = player_vertex.calc_avg_opponent_winrate()
         self.metrics["Absolute Winrate Difference"] = player_vertex.check_winrate_correlation()
-    
+
     def refresh(self) -> None:
         self.metrics = {}
         self.current_player = None
@@ -340,15 +341,15 @@ class HeadToHeadMetrics:
 
     def update_current_player(self, new_player: PlayerNode) -> None:
         self.current_player = new_player
-    
+
     def update_current_opponent(self, new_player: PlayerNode) -> None:
         self.current_opponent = new_player
         self.update_display()
 
 class StatList:
     """
-    A class that represents the stats display of each player. Gives their name, basic stats, and more. 
-    """ 
+    A class that represents the stats display of each player. Gives their name, basic stats, and more.
+    """
 
     LIST_WIDTH: int
     LIST_HEIGHT: int
@@ -407,7 +408,7 @@ class StatList:
                 text_position = text_surface.get_rect(topleft=(current_x, current_y))
                 current_y += 25
                 self.screen.blit(text_surface, text_position)
-    
+
     def refresh(self) -> None:
         self.stats = {}
         self.current_player = None
