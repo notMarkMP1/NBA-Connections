@@ -1,7 +1,4 @@
-# Using the data from our new generated file active_players.json, do the following
-# 1. Create a graph with each vertex being a player
-# 2. Each vertex will contain PlayerData, which is from player_stats.json
-# 3. Each vertex will contain an edge to all the other players they are connected to (from active_players.json)
+""" File containing all the classes required needed to run this program """
 
 from __future__ import annotations
 import json
@@ -43,7 +40,7 @@ class Vertex:
 
         return None
 
-    def calculate_average_teammate_winrate(self) -> float:
+    def calc_avg_teammate_winrate(self) -> float:
         """
         Return a player's teammate average winrate across every player they've been both teammates and opponents with.
         Include playoff stats
@@ -59,7 +56,7 @@ class Vertex:
         else:
             return 0.0
 
-    def calculate_average_opponent_winrate(self) -> float:
+    def calc_avg_opponent_winrate(self) -> float:
         """
         Return a player's opponent average winrate across every player they've been both teammates and opponents with.
         Include playoff stats
@@ -79,7 +76,7 @@ class Vertex:
         """
         Calculate the absolute difference between the average opponent and teammmate winrates
         """
-        return abs(self.calculate_average_teammate_winrate() - self.calculate_average_opponent_winrate())
+        return abs(self.calc_avg_teammate_winrate() - self.calc_avg_opponent_winrate())
 
     def compute_winrate_difference(self, other_player: Vertex) -> tuple[float, float]:
         """
@@ -98,8 +95,8 @@ class Vertex:
                 break
 
         return (
-            abs(self.calculate_average_teammate_winrate() - teammate_success),
-            abs(self.calculate_average_opponent_winrate() - opponent_success)
+            abs(self.calc_avg_teammate_winrate() - teammate_success),
+            abs(self.calc_avg_opponent_winrate() - opponent_success)
         )
 
     def return_edge_info(self, name1: str) -> Optional[dict]:
@@ -139,8 +136,7 @@ class Graph:
                 player_stats = PlayerData(seasons=info.get('seasons', []),
                                           first_team=info.get('first_team', ''),
                                           last_team=info.get('last_team', ''),
-                                          stats=info.get('stats', {}),
-                                          image_link=info.get('image', ''))
+                                          stats=info.get('stats', {}))
 
                 self.vertices[name].expanded_data = player_stats
 
@@ -206,7 +202,7 @@ class Edge:
         self.teammate_stats = teammate_stats
         self.opponent_stats = opponent_stats
 
-    def calculate_player_performance(self):
+    def calculate_player_performance(self) -> float:
         """Calculate how well this player does in revenge matchups compared to their normal value"""
         if 'w_pct' in self.opponent_stats and 'w_pct' in self.teammate_stats:
             return abs(float(self.opponent_stats['w_pct']) - float(self.teammate_stats['w_pct']))
@@ -220,11 +216,9 @@ class PlayerData:
     last_team: str
     first_team: str
     stats: dict[str, int]
-    image_link: str
 
-    def __init__(self, seasons: list[str], first_team: str, last_team: str, stats: dict[str, int], image_link: str):
+    def __init__(self, seasons: list[str], first_team: str, last_team: str, stats: dict[str, int]) -> None:
         self.seasons = seasons
         self.first_team = first_team
         self.last_team = last_team
         self.stats = stats
-        self.image_link = image_link
