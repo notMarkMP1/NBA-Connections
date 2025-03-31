@@ -262,8 +262,8 @@ class WinrateMetrics:
         self.current_player = new_player
         player_vertex = self.current_player.player_vertex
         self.metrics["Name"] = player_vertex.name
-        self.metrics["Winrate % Against Former Teammates"] = player_vertex.calculate_average_teammate_winrate()
-        self.metrics["Winrate % Against All Opponents"] = player_vertex.calculate_average_opponent_winrate()
+        self.metrics["Winrate % With Former Teammates"] = player_vertex.calculate_average_teammate_winrate()
+        self.metrics["Winrate % Against Former Teammates"] = player_vertex.calculate_average_opponent_winrate()
         self.metrics["Absolute Winrate Difference"] = player_vertex.check_winrate_correlation()
     
     def refresh(self) -> None:
