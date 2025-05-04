@@ -7,3 +7,5 @@ Our primary research question is the following: **Can the strength of a player's
 
 
 Our project answers such question, using Pygame for visualizing teammate connections and graph analysis methods to derive a conclusion. Data is obtained from basketball-reference.com, using webscraping through BeautifulSoup.
+
+Project 2 for CSC111 at the University of Toronto.
