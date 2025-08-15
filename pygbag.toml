@@ -1,0 +1,21 @@
+[package]
+
+include = [
+    "main.py",
+    "classes.py",
+    "display_containers.py",
+    "display_objects.py",
+    "visualization.py",
+    "active_players.json",
+    "players_stats.json"
+]
+
+# Stuff that we don't use anymore
+exclude = [
+    "archive/**",
+    "__pycache__/**",
+    ".idea/**",
+    ".vscode/**",
+    ".pytest_cache/**",
+    "build/**"
+]
