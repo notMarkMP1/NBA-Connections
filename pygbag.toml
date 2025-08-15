@@ -1,5 +1,6 @@
 [package]
 
+# Include the needed code files and json files
 include = [
     "main.py",
     "classes.py",
@@ -10,14 +11,12 @@ include = [
     "players_stats.json"
 ]
 
-# Stuff that we don't use anymore
+# Omitted code for deployment: Build files, extraneous json and cleaning files
 exclude = [
     "archive/**",
     "__pycache__/**",
     ".idea/**",
     ".vscode/**",
     ".pytest_cache/**",
-    "build/**",
-    "actv.json",
-    "plyrs.json"
+    "build/**"
 ]
