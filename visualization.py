@@ -5,7 +5,7 @@ import pygame
 from classes import Graph
 from display_containers import SideBar, TeamBox, OpponentBox
 from display_objects import PositionalData
-
+import asyncio
 
 class Visualization:
     """
@@ -20,7 +20,7 @@ class Visualization:
     clock: pygame.time.Clock
     running: bool
 
-    def __init__(self) -> None:
+    def __init__(self, stats_data: dict, player_connections: dict) -> None:
         """
         Initialize an instance of the visualization tool.
         """
@@ -28,7 +28,7 @@ class Visualization:
         self.screen = pygame.display.set_mode((1600, 900))
         self.clock = pygame.time.Clock()
         self.running = True
-        self.graph = Graph()
+        self.graph = Graph(stats_data, player_connections)
         self.teambox = TeamBox(PositionalData(1100, 450, 0, 0), self.screen, self.graph)
         self.sidebar = SideBar(PositionalData(500, 900, 1100, 0), self.screen)
         self.opponentbox = OpponentBox(PositionalData(1100, 450, 0, 450), self.screen, self.graph)
@@ -55,7 +55,7 @@ class Visualization:
         self.teambox.render()
         self.sidebar.render()
 
-    def start_visualization(self) -> None:
+    async def start_visualization(self) -> None:
         """
         Run the main python visualization tool.
         """
@@ -69,14 +69,6 @@ class Visualization:
             self.render_elements()
             pygame.display.flip()
             self.clock.tick(144)
+            await asyncio.sleep(0)
         pygame.quit()
 
-
-if __name__ == "__main__":
-    import python_ta
-
-    python_ta.check_all(config={
-        'max-line-length': 120,
-        'disable': ["E9999", "E1101"],
-        'debug': False
-    })

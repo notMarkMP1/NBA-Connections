@@ -467,13 +467,3 @@ class StatList:
         """
         self.stats = {}
         self.current_player = None
-
-
-if __name__ == "__main__":
-    import python_ta
-
-    python_ta.check_all(config={
-        'max-line-length': 120,
-        'disable': ["E9999", "E1101"],
-        'debug': False
-    })

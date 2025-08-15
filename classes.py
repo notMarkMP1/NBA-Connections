@@ -117,18 +117,15 @@ class Graph:
     """Fill out this docstring"""
     vertices: dict[str, Vertex]
 
-    def __init__(self) -> None:
+    def __init__(self, stats_data: dict, player_connections: dict) -> None:
         """Initialize an empty graph"""
         self.vertices = {}
-        self.initialize_graph()
+        self.initialize_graph(stats_data, player_connections)
 
-    def initialize_graph(self) -> None:
+    def initialize_graph(self, stats_data: dict, player_connections: dict) -> None:
         """
         Initialize a graph with vertices for all active players, creating edges where needed.
         """
-        with open('players_stats.json', 'r') as openfile:
-            stats_data = json.load(openfile)
-
         for name, info in stats_data.items():
             # Add only the active players
             if info.get('active', False):
@@ -139,9 +136,6 @@ class Graph:
                                           stats=info.get('stats', {}))
 
                 self.vertices[name].expanded_data = player_stats
-
-        with open('active_players.json', 'r') as openfile:
-            player_connections = json.load(openfile)
 
         for name, connections in player_connections.items():
             # Access the vertex of the player so we can add its edges

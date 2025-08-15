@@ -17,5 +17,7 @@ exclude = [
     ".idea/**",
     ".vscode/**",
     ".pytest_cache/**",
-    "build/**"
+    "build/**",
+    "actv.json",
+    "plyrs.json"
 ]
