@@ -458,11 +458,3 @@ class SideBar:
         # only indexes 1, 3 should be updated
         self.stat_displays[1].update_current_player(player)
         self.stat_displays[3].update_current_opponent(player)
-
-
-if __name__ == "__main__":
-    import python_ta
-
-    python_ta.check_all(
-        config={"max-line-length": 120, "disable": ["E9999", "E1101"], "debug": False}
-    )

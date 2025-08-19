@@ -1,0 +1,22 @@
+[package]
+
+# Include the needed code files and json files
+include = [
+    "main.py",
+    "classes.py",
+    "display_containers.py",
+    "display_objects.py",
+    "visualization.py",
+    "active_players.json",
+    "players_stats.json"
+]
+
+# Omitted code for deployment: Build files, extraneous json and cleaning files
+exclude = [
+    "archive/**",
+    "__pycache__/**",
+    ".idea/**",
+    ".vscode/**",
+    ".pytest_cache/**",
+    "build/**"
+]
